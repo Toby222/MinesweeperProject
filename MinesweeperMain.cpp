@@ -66,14 +66,16 @@ namespace minesweeper {
 			Square(bool isMine, olc::vi2d position) : position(position)
 			{
 				this->isMine = isMine;
+				this->flagged = false;
+				this->state = State::closed;
+				this->value = 0;
 			}
 
 			const olc::vi2d position;
-
 			bool isMine;
-			int value = 0;
-			bool flagged = false;
-			State state = State::closed;
+			int value;
+			bool flagged;
+			State state;
 
 			olc::Sprite* getSprite() {
 				if (isMine)
@@ -106,7 +108,7 @@ namespace minesweeper {
 		};
 
 	public:
-		std::vector<std::vector<Square>> field;
+		std::vector<std::vector<Square*>> field;
 
 		Minesweeper()
 		{
@@ -129,9 +131,9 @@ namespace minesweeper {
 				throw std::exception("Invalid screen height.");
 
 			for (int y = 0; y < (ScreenHeight() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE; y++) {
-				field.push_back(std::vector<Square>());
+				field.push_back(std::vector<Square*>());
 				for (int x = 0; x < ScreenWidth() / MS_FIELD_SIZE; x++) {
-					field[y].push_back(Square(random(generator) <= 0.25, olc::vi2d(x, y)));
+					field[y].push_back(new Square(random(generator) <= 0.25, olc::vi2d(x, y)));
 				}
 			}
 
@@ -147,21 +149,25 @@ namespace minesweeper {
 			};
 
 			for (auto row : field)
+			//for(int y = 0; y < field.size(); y++)
 			{
 				for (auto square : row)
+				//for(int x = 0; x < field[y].size(); x++)
 				{
+					//auto square = field[y][x];
+					square->value = 0;
+					square->TryOpen();
 					for (auto offset : offsets) {
-						auto neighborPos = square.position + offset;
+						auto neighborPos = square->position + offset;
 						if (neighborPos.y >= field.size() ||
 							neighborPos.y < 0 ||
 							neighborPos.x >= field[0].size() ||
 							neighborPos.x < 0)
 							continue;
 						// std::cout << "X: " << neighborPos.x << " Y: " << neighborPos.y << std::endl;
-						if (field[neighborPos.y][neighborPos.x].isMine)
-							square.value++;
+						if (field[neighborPos.y][neighborPos.x]->isMine)
+							square->value++;
 					}
-					(&square)->TryOpen();
 				}
 			}
 			return true;
@@ -179,7 +185,7 @@ namespace minesweeper {
 
 			for (auto row : field)
 				for (auto square : row)
-					DrawSprite(square.position.x * MS_FIELD_SIZE, square.position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square.getSprite());
+					DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite());
 
 			return true;
 		}
