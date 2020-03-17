@@ -8,7 +8,7 @@
 
 namespace minesweeper {
 	struct Sprites {
-		olc::Sprite* LoadSprite(std::string filename) {
+		olc::Sprite* LoadSprite(std::string filename, olc::vi2d expectedSize = olc::vi2d(-1, -1)) {
 			std::cout << filename << std::endl;
 			std::stringstream filepath;
 			filepath << "Sprites/" << filename;
@@ -17,10 +17,10 @@ namespace minesweeper {
 
 			if (newSprite->width == 0 || newSprite->height == 0)
 				throw std::exception("Invalid file.");
-
-			if (newSprite->width != MS_FIELD_SIZE || newSprite->height != MS_FIELD_SIZE) {
+			if (((newSprite->width != expectedSize.x) && (expectedSize.x != -1)) ||
+				((newSprite->height != expectedSize.y) && (expectedSize.y != -1))) {
 				std::stringstream exceptionString;
-				exceptionString << "Loaded sprite is invalid size. Needs to be " << MS_FIELD_SIZE << "x" << MS_FIELD_SIZE << std::endl;
+				exceptionString << "Loaded sprite is invalid size. Needs to be " << expectedSize.x << "x" << expectedSize.y << std::endl;
 				throw std::exception(exceptionString.str().c_str());
 			}
 
@@ -31,10 +31,14 @@ namespace minesweeper {
 			std::cout << "Loading sprites...\n";
 			try
 			{
+				std::stringstream filename;
 				for (int i = 0; i < 9; i++) {
-					std::stringstream filename;
+					filename.str("");
 					filename << "field" << i << ".png";
-					fieldSprites[i] = LoadSprite(filename.str());
+					fieldSprites[i] = LoadSprite(filename.str(), olc::vi2d(MS_FIELD_SIZE, MS_FIELD_SIZE));
+					filename.str("");
+					filename << "digit" << i << ".png";
+					digitSprites[i] = LoadSprite(filename.str(), olc::vi2d(13, 23));
 				}
 				flagged = LoadSprite("flagged.png");
 				closed = LoadSprite("closed.png");
@@ -48,9 +52,9 @@ namespace minesweeper {
 			}
 		}
 
-		static olc::Sprite* fieldSprites[9], * closed, * flagged, * revealedmine;
+		static olc::Sprite* fieldSprites[9], * digitSprites[10], * closed, * flagged, * revealedmine;
 	};
-	olc::Sprite* Sprites::fieldSprites[9], * Sprites::closed, * Sprites::flagged, * Sprites::revealedmine;
+	olc::Sprite* Sprites::fieldSprites[9], * Sprites::digitSprites[10], * Sprites::closed, * Sprites::flagged, * Sprites::revealedmine;
 
 	class Minesweeper : public olc::PixelGameEngine {
 	private:
@@ -93,15 +97,19 @@ namespace minesweeper {
 			};
 
 			void TryOpen() {
-				switch (this->state)
-				{
-					case State::closed:
-						this->state = State::open;
+				if (this->state == State::closed)
+					this->state = State::open;
+			}
+
+			void TryFlag() {
+				switch (this->state) {
+					case(State::closed):
+						this->state = State::flagged;
 						break;
-					case State::open:
-					case State::flagged:
+					case(State::flagged):
+						this->state = State::closed;
 						break;
-					default:
+					case(State::open):
 						break;
 				}
 			}
@@ -149,12 +157,9 @@ namespace minesweeper {
 			};
 
 			for (auto row : field)
-			//for(int y = 0; y < field.size(); y++)
 			{
 				for (auto square : row)
-				//for(int x = 0; x < field[y].size(); x++)
 				{
-					//auto square = field[y][x];
 					square->value = 0;
 					square->TryOpen();
 					for (auto offset : offsets) {
@@ -164,7 +169,6 @@ namespace minesweeper {
 							neighborPos.x >= field[0].size() ||
 							neighborPos.x < 0)
 							continue;
-						// std::cout << "X: " << neighborPos.x << " Y: " << neighborPos.y << std::endl;
 						if (field[neighborPos.y][neighborPos.x]->isMine)
 							square->value++;
 					}
