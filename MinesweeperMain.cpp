@@ -63,7 +63,8 @@ namespace minesweeper {
 			enum class State {
 				open,
 				closed,
-				flagged
+				flagged,
+				pressed
 			};
 
 		public:
@@ -82,8 +83,8 @@ namespace minesweeper {
 			State state;
 
 			olc::Sprite* getSprite() {
-				if (isMine)
-					return Sprites::revealedmine;
+				//if (isMine)
+				//	return Sprites::revealedmine;
 				switch (state) {
 					case(State::closed):
 						return Sprites::closed;
@@ -96,8 +97,14 @@ namespace minesweeper {
 				}
 			};
 
-			void TryOpen() {
+			void TryHover() {
 				if (this->state == State::closed)
+					this->state = State::pressed;
+			}
+
+			void TryOpen() {
+				if (this->state == State::closed || //shoule be able to remove this
+					this->state == State::pressed)
 					this->state = State::open;
 			}
 
@@ -109,15 +116,17 @@ namespace minesweeper {
 					case(State::flagged):
 						this->state = State::closed;
 						break;
+					case(State::pressed):
 					case(State::open):
 						break;
 				}
 			}
 		};
 
-	public:
+	private:
 		std::vector<std::vector<Square*>> field;
-
+		Square* hoveredSquare;
+	public:
 		Minesweeper()
 		{
 			sAppName = "Minesweeper";
@@ -160,8 +169,6 @@ namespace minesweeper {
 			{
 				for (auto square : row)
 				{
-					square->value = 0;
-					square->TryOpen();
 					for (auto offset : offsets) {
 						auto neighborPos = square->position + offset;
 						if (neighborPos.y >= field.size() ||
@@ -193,7 +200,24 @@ namespace minesweeper {
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
 
-			if (GetMouse(0).bPressed || GetMouse(0).bHeld) {
+			hoveredSquare = nullptr;
+			bool redraw = false;
+
+			auto mousePos = olc::vi2d(GetMouseX(), GetMouseY() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE;
+
+			if (mousePos.y >= 0 && mousePos.y < field.size() &&
+				mousePos.x >= 0 && mousePos.x < field[0].size()) {
+				hoveredSquare = field[mousePos.y][mousePos.x];
+				if (GetMouse(0).bHeld)
+					std::cout << hoveredSquare->position.x << ";" << hoveredSquare->position.y << std::endl;
+			}
+
+			if (GetMouse(0).bPressed || GetMouse(0).bHeld || GetMouse(0).bReleased ||
+				GetMouse(1).bPressed || GetMouse(1).bHeld || GetMouse(0).bReleased) {
+				redraw = true;
+			}
+
+			if (redraw) {
 				for (int y = 0; y < MS_TOPBAR_SIZE; y++)
 					for (int x = 0; x < ScreenWidth(); x++)
 						Draw(x, y, olc::DARK_GREY);
