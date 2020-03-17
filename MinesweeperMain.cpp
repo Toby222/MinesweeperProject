@@ -40,6 +40,7 @@ namespace minesweeper {
 					filename << "digit" << i << ".png";
 					digitSprites[i] = LoadSprite(filename.str(), olc::vi2d(13, 23));
 				}
+				digitSprites[9] = LoadSprite("digit9.png");
 				flagged = LoadSprite("flagged.png");
 				closed = LoadSprite("closed.png");
 				revealedmine = LoadSprite("revealedmine.png");
@@ -92,14 +93,21 @@ namespace minesweeper {
 						return Sprites::flagged;
 					case(State::open):
 						return Sprites::fieldSprites[value];
+					case(State::pressed):
+						return Sprites::fieldSprites[0];
 					default:
 						throw std::exception("Invalid Square state");
 				}
 			};
 
-			void TryHover() {
+			void TryPress() {
 				if (this->state == State::closed)
 					this->state = State::pressed;
+			}
+
+			void TryRelease() {
+				if (this->state == State::pressed)
+					this->state = State::closed;
 			}
 
 			void TryOpen() {
@@ -126,6 +134,8 @@ namespace minesweeper {
 	private:
 		std::vector<std::vector<Square*>> field;
 		Square* hoveredSquare;
+		Square* prevHoveredSquare;
+
 	public:
 		Minesweeper()
 		{
@@ -200,16 +210,25 @@ namespace minesweeper {
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
 
+			prevHoveredSquare = hoveredSquare;
 			hoveredSquare = nullptr;
 			bool redraw = false;
 
 			auto mousePos = olc::vi2d(GetMouseX(), GetMouseY() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE;
+			
+			if (!(prevHoveredSquare == nullptr))
+				prevHoveredSquare->TryRelease();
 
 			if (mousePos.y >= 0 && mousePos.y < field.size() &&
-				mousePos.x >= 0 && mousePos.x < field[0].size()) {
+				mousePos.x >= 0 && mousePos.x < field[0].size() &&
+				GetMouseY() > MS_TOPBAR_SIZE) {
 				hoveredSquare = field[mousePos.y][mousePos.x];
-				if (GetMouse(0).bHeld)
-					std::cout << hoveredSquare->position.x << ";" << hoveredSquare->position.y << std::endl;
+				if (GetMouse(1).bPressed)
+					hoveredSquare->TryFlag();
+				if (GetMouse(0).bReleased)
+					hoveredSquare->TryOpen();
+				else if (GetMouse(0).bHeld)
+					hoveredSquare->TryPress();
 			}
 
 			if (GetMouse(0).bPressed || GetMouse(0).bHeld || GetMouse(0).bReleased ||
@@ -223,8 +242,9 @@ namespace minesweeper {
 						Draw(x, y, olc::DARK_GREY);
 
 				for (auto row : field)
-					for (auto square : row)
+					for (auto square : row) {
 						DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite());
+					}
 			}
 
 			return true;
