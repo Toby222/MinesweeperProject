@@ -174,22 +174,34 @@ namespace minesweeper {
 					}
 				}
 			}
+
+			for (int y = 0; y < MS_TOPBAR_SIZE; y++)
+				for (int x = 0; x < ScreenWidth(); x++)
+					Draw(x, y, olc::DARK_GREY);
+			for (auto row : field)
+				for (auto square : row)
+					DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite());
+
 			return true;
 		}
 
 		// Called once per frame
 		bool OnUserUpdate(float fElapsedTime) override
 		{
+			if (!Minesweeper::IsFocused())
+				return true;
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
 
-			for (int y = 0; y < MS_TOPBAR_SIZE; y++)
-				for (int x = 0; x < ScreenWidth(); x++)
-					Draw(x, y, olc::DARK_GREY);
+			if (GetMouse(0).bPressed || GetMouse(0).bHeld) {
+				for (int y = 0; y < MS_TOPBAR_SIZE; y++)
+					for (int x = 0; x < ScreenWidth(); x++)
+						Draw(x, y, olc::DARK_GREY);
 
-			for (auto row : field)
-				for (auto square : row)
-					DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite());
+				for (auto row : field)
+					for (auto square : row)
+						DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite());
+			}
 
 			return true;
 		}
