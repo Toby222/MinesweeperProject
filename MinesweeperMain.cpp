@@ -7,6 +7,17 @@
 #define MS_TOPBAR_SIZE 32
 
 namespace minesweeper {
+	const olc::vi2d offsets[8]{
+		olc::vi2d(-1, -1),
+		olc::vi2d(0, -1),
+		olc::vi2d(1, -1),
+		olc::vi2d(-1, 0),
+		olc::vi2d(1, 0),
+		olc::vi2d(-1, 1),
+		olc::vi2d(0, 1),
+		olc::vi2d(1, 1)
+	};
+
 	struct Sprites {
 		olc::Sprite* LoadSprite(std::string filename, olc::vi2d expectedSize = olc::vi2d(-1, -1)) {
 			std::cout << filename << std::endl;
@@ -41,9 +52,11 @@ namespace minesweeper {
 					digitSprites[i] = LoadSprite(filename.str(), olc::vi2d(13, 23));
 				}
 				digitSprites[9] = LoadSprite("digit9.png");
-				flagged = LoadSprite("flagged.png");
 				closed = LoadSprite("closed.png");
+				falsemine = LoadSprite("falsemine.png");
+				flagged = LoadSprite("flagged.png");
 				revealedmine = LoadSprite("revealedmine.png");
+				clickedmine = LoadSprite("clickedmine.png");
 			}
 			catch (const std::exception & err)
 			{
@@ -53,9 +66,9 @@ namespace minesweeper {
 			}
 		}
 
-		static olc::Sprite* fieldSprites[9], * digitSprites[10], * closed, * flagged, * revealedmine;
+		static olc::Sprite* fieldSprites[9], * digitSprites[10], * closed, * flagged, * revealedmine, * falsemine, * clickedmine;
 	};
-	olc::Sprite* Sprites::fieldSprites[9], * Sprites::digitSprites[10], * Sprites::closed, * Sprites::flagged, * Sprites::revealedmine;
+	olc::Sprite* Sprites::fieldSprites[9], * Sprites::digitSprites[10], * Sprites::closed, * Sprites::flagged, * Sprites::revealedmine, * Sprites::falsemine, * Sprites::clickedmine;
 
 	class Minesweeper : public olc::PixelGameEngine {
 	private:
@@ -72,7 +85,6 @@ namespace minesweeper {
 			Square(bool isMine, olc::vi2d position) : position(position)
 			{
 				this->isMine = isMine;
-				this->flagged = false;
 				this->state = State::closed;
 				this->value = 0;
 			}
@@ -80,23 +92,49 @@ namespace minesweeper {
 			const olc::vi2d position;
 			bool isMine;
 			int value;
-			bool flagged;
 			State state;
 
-			olc::Sprite* getSprite() {
-				//if (isMine)
-				//	return Sprites::revealedmine;
-				switch (state) {
-					case(State::closed):
-						return Sprites::closed;
-					case(State::flagged):
-						return Sprites::flagged;
-					case(State::open):
-						return Sprites::fieldSprites[value];
-					case(State::pressed):
-						return Sprites::fieldSprites[0];
-					default:
-						throw std::exception("Invalid Square state");
+			olc::Sprite* getSprite(bool gameOver = false) {
+				if (gameOver) {
+					if (this->isMine) {
+						switch (this->state) {
+							case(State::flagged):
+								return Sprites::flagged;
+							case(State::closed):
+								return Sprites::revealedmine;
+							case(State::pressed):
+								std::cerr << "Pressed square after gameOver";
+							case(State::open):
+								return Sprites::clickedmine;
+						}
+					}
+					else {
+						switch (this->state) {
+							case(State::flagged):
+								return Sprites::falsemine;
+							case(State::pressed):
+								std::cerr << "Pressed square after gameOver";
+							case(State::open):
+							case(State::closed):
+								return Sprites::fieldSprites[this->value];
+						}
+					}
+				}
+				else {
+					/*if (isMine)
+						return Sprites::revealedmine;*/
+					switch (state) {
+						case(State::closed):
+							return Sprites::closed;
+						case(State::flagged):
+							return Sprites::flagged;
+						case(State::open):
+							return Sprites::fieldSprites[value];
+						case(State::pressed):
+							return Sprites::fieldSprites[0];
+						default:
+							throw std::exception("Invalid Square state");
+					}
 				}
 			};
 
@@ -110,10 +148,22 @@ namespace minesweeper {
 					this->state = State::closed;
 			}
 
-			void TryOpen() {
-				if (this->state == State::closed || //shoule be able to remove this
-					this->state == State::pressed)
+			// Return value "should game continue"
+			void TryOpen(std::vector<std::vector<Square*>> field) {
+				if (this->state == State::closed ||
+					this->state == State::pressed) {
 					this->state = State::open;
+
+					if (this->value == 0) {
+						for (auto offset : offsets) {
+							auto neighborPos = this->position + offset;
+							if (neighborPos.y >= field.size() || neighborPos.y < 0 ||
+								neighborPos.x >= field[0].size() || neighborPos.x < 0)
+								continue;
+							field[neighborPos.y][neighborPos.x]->TryOpen(field);
+						}
+					}
+				}
 			}
 
 			void TryFlag() {
@@ -135,10 +185,12 @@ namespace minesweeper {
 		std::vector<std::vector<Square*>> field;
 		Square* hoveredSquare;
 		Square* prevHoveredSquare;
+		bool gameOver;
 
 	public:
 		Minesweeper()
 		{
+			gameOver = false;
 			sAppName = "Minesweeper";
 		}
 
@@ -164,27 +216,14 @@ namespace minesweeper {
 				}
 			}
 
-			olc::vi2d offsets[8]{
-				olc::vi2d(-1, 1),
-				olc::vi2d(0, 1),
-				olc::vi2d(1, 1),
-				olc::vi2d(-1, 0),
-				olc::vi2d(1,0),
-				olc::vi2d(-1,1),
-				olc::vi2d(0, 1),
-				olc::vi2d(1, 1)
-			};
-
 			for (auto row : field)
 			{
 				for (auto square : row)
 				{
 					for (auto offset : offsets) {
 						auto neighborPos = square->position + offset;
-						if (neighborPos.y >= field.size() ||
-							neighborPos.y < 0 ||
-							neighborPos.x >= field[0].size() ||
-							neighborPos.x < 0)
+						if (neighborPos.y >= field.size() || neighborPos.y < 0 ||
+							neighborPos.x >= field[0].size() || neighborPos.x < 0)
 							continue;
 						if (field[neighborPos.y][neighborPos.x]->isMine)
 							square->value++;
@@ -215,7 +254,7 @@ namespace minesweeper {
 			bool redraw = false;
 
 			auto mousePos = olc::vi2d(GetMouseX(), GetMouseY() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE;
-			
+
 			if (!(prevHoveredSquare == nullptr))
 				prevHoveredSquare->TryRelease();
 
@@ -225,10 +264,21 @@ namespace minesweeper {
 				hoveredSquare = field[mousePos.y][mousePos.x];
 				if (GetMouse(1).bPressed)
 					hoveredSquare->TryFlag();
-				if (GetMouse(0).bReleased)
-					hoveredSquare->TryOpen();
+				if (GetMouse(0).bReleased) {
+					if (!hoveredSquare->isMine)
+						hoveredSquare->TryOpen(field);
+					else
+						gameOver = true;
+				}
 				else if (GetMouse(0).bHeld)
 					hoveredSquare->TryPress();
+				else if (GetMouse(3).bHeld) {
+					for(auto offset : offsets){
+					}
+				}
+				else if (GetMouse(3).bReleased) {
+
+				}
 			}
 
 			if (GetMouse(0).bPressed || GetMouse(0).bHeld || GetMouse(0).bReleased ||
@@ -242,9 +292,8 @@ namespace minesweeper {
 						Draw(x, y, olc::DARK_GREY);
 
 				for (auto row : field)
-					for (auto square : row) {
-						DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite());
-					}
+					for (auto square : row)
+						DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite(gameOver));
 			}
 
 			return true;
