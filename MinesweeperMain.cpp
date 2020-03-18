@@ -274,8 +274,12 @@ namespace minesweeper {
 
 			auto mousePos = olc::vi2d(GetMouseX(), GetMouseY() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE;
 
-			if (!(gameOver || prevHoveredSquare == nullptr))
+			if (!(gameOver || prevHoveredSquare == nullptr)) {
 				prevHoveredSquare->TryRelease();
+				for (auto neighbor : prevHoveredSquare->neighbors)
+					if (neighbor != nullptr)
+						neighbor->TryRelease();
+			}
 
 			if (mousePos.y >= 0 && mousePos.y < field.size() &&
 				mousePos.x >= 0 && mousePos.x < field[0].size() &&
@@ -283,23 +287,34 @@ namespace minesweeper {
 				hoveredSquare = field[mousePos.y][mousePos.x];
 				if (GetMouse(1).bPressed && !gameOver)
 					hoveredSquare->TryFlag();
-				if (GetMouse(0).bReleased && !gameOver) {
-					hoveredSquare->TryOpen(field);
-					if (hoveredSquare->isMine)
-						gameOver = true;
+
+				if (GetMouse(2).bHeld && !gameOver) {
+					for (auto neighbor : hoveredSquare->neighbors)
+						if (neighbor != nullptr)
+							neighbor->TryPress();
 				}
-				else if (GetMouse(0).bHeld && !gameOver)
+				else if (GetMouse(2).bReleased && !gameOver && hoveredSquare->state == Square::State::open) {
+					int flaggedNeighbors = 0;
+					for (auto neighbor : hoveredSquare->neighbors)
+						if (neighbor != nullptr && neighbor->state==Square::State::flagged)
+							flaggedNeighbors++;
+					if (flaggedNeighbors == hoveredSquare->value)
+						for (auto neighbor : hoveredSquare->neighbors)
+							if (neighbor != nullptr)
+								if (neighbor->TryOpen(field))
+									gameOver = true;
+				}
+
+				if ((GetMouse(0).bReleased) && !gameOver) {
+					gameOver = hoveredSquare->TryOpen(field);
+				}
+				else if ((GetMouse(0).bHeld || GetMouse(2).bHeld) && !gameOver)
 					hoveredSquare->TryPress();
-				else if (GetMouse(3).bHeld && !gameOver) {
-					for (auto offset : offsets) {
-					}
-				}
-				else if (GetMouse(3).bReleased) {
-				}
 			}
 
 			if (GetMouse(0).bPressed || GetMouse(0).bHeld || GetMouse(0).bReleased ||
-				GetMouse(1).bPressed || GetMouse(1).bHeld || GetMouse(0).bReleased) {
+				GetMouse(1).bPressed || GetMouse(1).bHeld || GetMouse(1).bReleased ||
+				GetMouse(2).bPressed || GetMouse(2).bHeld || GetMouse(2).bReleased) {
 				redraw = true;
 			}
 
