@@ -82,9 +82,9 @@ namespace minesweeper {
 			};
 
 		public:
-			Square(bool isMine, olc::vi2d position) : position(position)
+			Square(olc::vi2d position) : position(position)
 			{
-				this->isMine = isMine;
+				this->isMine = false;
 				this->state = State::closed;
 				this->value = 0;
 			}
@@ -148,7 +148,6 @@ namespace minesweeper {
 					this->state = State::closed;
 			}
 
-			// Return value "should game continue"
 			void TryOpen(std::vector<std::vector<Square*>> field) {
 				if (this->state == State::closed ||
 					this->state == State::pressed) {
@@ -186,10 +185,12 @@ namespace minesweeper {
 		Square* hoveredSquare;
 		Square* prevHoveredSquare;
 		bool gameOver;
+		int minecount;
 
 	public:
-		Minesweeper()
+		Minesweeper(int minecount = 35)
 		{
+			this->minecount = minecount;
 			gameOver = false;
 			sAppName = "Minesweeper";
 		}
@@ -198,7 +199,7 @@ namespace minesweeper {
 		bool OnUserCreate() override
 		{
 			Sprites::Sprites();
-			std::uniform_real<> random(0, 1);
+			std::uniform_real_distribution<> random(0, 1);
 			std::default_random_engine generator;
 
 			if ((MS_FIELD_SIZE & MS_FIELD_SIZE >> 1) != 0)
@@ -211,15 +212,13 @@ namespace minesweeper {
 
 			for (int y = 0; y < (ScreenHeight() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE; y++) {
 				field.push_back(std::vector<Square*>());
-				for (int x = 0; x < ScreenWidth() / MS_FIELD_SIZE; x++) {
-					field[y].push_back(new Square(random(generator) <= 0.25, olc::vi2d(x, y)));
-				}
+				for (int x = 0; x < ScreenWidth() / MS_FIELD_SIZE; x++)
+					field[y].push_back(new Square(olc::vi2d(x, y)));
 			}
+			CreateField(this->minecount);
 
 			for (auto row : field)
-			{
 				for (auto square : row)
-				{
 					for (auto offset : offsets) {
 						auto neighborPos = square->position + offset;
 						if (neighborPos.y >= field.size() || neighborPos.y < 0 ||
@@ -228,17 +227,38 @@ namespace minesweeper {
 						if (field[neighborPos.y][neighborPos.x]->isMine)
 							square->value++;
 					}
-				}
-			}
 
 			for (int y = 0; y < MS_TOPBAR_SIZE; y++)
 				for (int x = 0; x < ScreenWidth(); x++)
 					Draw(x, y, olc::DARK_GREY);
+
 			for (auto row : field)
 				for (auto square : row)
 					DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite());
 
 			return true;
+		}
+
+		void CreateField(int minecount) {
+			if (minecount >= (field.size() * field[0].size()))
+				throw std::exception("Invalid mine count for this field size.");
+
+			std::uniform_real_distribution<> randomX(0, field[0].size());
+			std::uniform_real_distribution<> randomY(0, field.size());
+
+			std::random_device rd;
+			std::default_random_engine gen(rd());
+
+			int DBG_MINECOUNT = 0;
+
+			for (int i = 0; i < minecount; i++) {
+				auto newMine = field[randomY(gen)][randomX(gen)];
+				if (newMine->isMine)
+					i--;
+				else 
+					newMine->isMine = true;
+				
+			}
 		}
 
 		// Called once per frame
@@ -255,29 +275,27 @@ namespace minesweeper {
 
 			auto mousePos = olc::vi2d(GetMouseX(), GetMouseY() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE;
 
-			if (!(prevHoveredSquare == nullptr))
+			if (!(gameOver || prevHoveredSquare == nullptr))
 				prevHoveredSquare->TryRelease();
 
 			if (mousePos.y >= 0 && mousePos.y < field.size() &&
 				mousePos.x >= 0 && mousePos.x < field[0].size() &&
 				GetMouseY() > MS_TOPBAR_SIZE) {
 				hoveredSquare = field[mousePos.y][mousePos.x];
-				if (GetMouse(1).bPressed)
+				if (GetMouse(1).bPressed && !gameOver)
 					hoveredSquare->TryFlag();
-				if (GetMouse(0).bReleased) {
-					if (!hoveredSquare->isMine)
-						hoveredSquare->TryOpen(field);
-					else
+				if (GetMouse(0).bReleased && !gameOver) {
+					hoveredSquare->TryOpen(field);
+					if (hoveredSquare->isMine)
 						gameOver = true;
 				}
-				else if (GetMouse(0).bHeld)
+				else if (GetMouse(0).bHeld && !gameOver)
 					hoveredSquare->TryPress();
-				else if (GetMouse(3).bHeld) {
-					for(auto offset : offsets){
+				else if (GetMouse(3).bHeld && !gameOver) {
+					for (auto offset : offsets) {
 					}
 				}
 				else if (GetMouse(3).bReleased) {
-
 				}
 			}
 
@@ -303,7 +321,7 @@ namespace minesweeper {
 
 int main()
 {
-	minesweeper::Minesweeper mainWindow;
+	minesweeper::Minesweeper mainWindow(200);
 	if (mainWindow.Construct(1024, 512 + MS_TOPBAR_SIZE, 1, 1))
 		mainWindow.Start();
 
