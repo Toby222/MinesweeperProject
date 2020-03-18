@@ -255,9 +255,8 @@ namespace minesweeper {
 				auto newMine = field[randomY(gen)][randomX(gen)];
 				if (newMine->isMine)
 					i--;
-				else 
+				else
 					newMine->isMine = true;
-				
 			}
 		}
 
