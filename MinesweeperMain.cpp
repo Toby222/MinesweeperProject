@@ -243,8 +243,8 @@ namespace minesweeper {
 			if (minecount >= (field.size() * field[0].size()))
 				throw std::exception("Invalid mine count for this field size.");
 
-			std::uniform_real_distribution<> randomX(0, field[0].size());
-			std::uniform_real_distribution<> randomY(0, field.size());
+			std::uniform_int_distribution<> randomX(0, field[0].size()-1);
+			std::uniform_int_distribution<> randomY(0, field.size()-1);
 
 			std::random_device rd;
 			std::default_random_engine gen(rd());
