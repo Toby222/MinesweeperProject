@@ -40,11 +40,21 @@ namespace minesweeper {
 
 		static olc::Sprite** IntToSprites(int value) {
 			olc::Sprite** sprites = new olc::Sprite * [3]{ Sprites::digitSprites[9], Sprites::digitSprites[9], Sprites::digitSprites[9] };
-			if (value < 999)
+			if (0 < value && value < 999)
 			{
 				sprites[0] = digitSprites[value / 100 % 10];
 				sprites[1] = digitSprites[value / 10 % 10];
 				sprites[2] = digitSprites[value % 10];
+			}
+			if (-99 < value && value < 0) {
+				sprites[0] = digitSprites[10];
+				sprites[1] = digitSprites[-value / 10 % 10];
+				sprites[2] = digitSprites[-value % 10];
+			}
+			if (value <= -99) {
+				sprites[0] = digitSprites[10];
+				sprites[1] = digitSprites[9];
+				sprites[2] = digitSprites[9];
 			}
 			return sprites;
 		}
@@ -63,6 +73,7 @@ namespace minesweeper {
 					digitSprites[i] = LoadSprite(filename.str(), olc::vi2d(13, 23));
 				}
 				digitSprites[9] = LoadSprite("digit9.png");
+				digitSprites[10] = LoadSprite("digit-.png");
 				closed = LoadSprite("closed.png");
 				falsemine = LoadSprite("falsemine.png");
 				flagged = LoadSprite("flagged.png");
@@ -77,9 +88,9 @@ namespace minesweeper {
 			}
 		}
 
-		static olc::Sprite* fieldSprites[9], * digitSprites[10], * closed, * flagged, * revealedmine, * falsemine, * clickedmine;
+		static olc::Sprite* fieldSprites[9], * digitSprites[11], * closed, * flagged, * revealedmine, * falsemine, * clickedmine;
 	};
-	olc::Sprite* Sprites::fieldSprites[9], * Sprites::digitSprites[10], * Sprites::closed, * Sprites::flagged, * Sprites::revealedmine, * Sprites::falsemine, * Sprites::clickedmine;
+	olc::Sprite* Sprites::fieldSprites[9], * Sprites::digitSprites[11], * Sprites::closed, * Sprites::flagged, * Sprites::revealedmine, * Sprites::falsemine, * Sprites::clickedmine;
 
 	struct Square {
 		enum class State {
@@ -332,6 +343,15 @@ namespace minesweeper {
 			bool redrawField = fElapsedTime < 0;
 
 			auto mousePos = olc::vi2d(GetMouseX(), GetMouseY() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE;
+
+#ifndef NDEBUG
+			if (GetKey(olc::Key::T).bHeld && GetKey(olc::Key::B).bHeld)
+				for (auto row : this->field)
+					for (auto square : row) {
+						this->flaggedSquares += square->TryFlag();
+						redrawField = true;
+					}
+#endif
 
 			if (!(gameState == State::gameOver || prevHoveredSquare == nullptr)) {
 				prevHoveredSquare->TryRelease();
