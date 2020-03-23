@@ -268,6 +268,8 @@ namespace minesweeper {
 			this->passedSeconds = 0;
 			this->flaggedSquares = 0;
 			this->openedSquares = 0;
+			this->prevHoveredSquare = nullptr;
+			this->hoveredSquare = nullptr;
 
 			for (auto row : this->field)
 				for (auto square : row)
@@ -419,7 +421,7 @@ namespace minesweeper {
 int main()
 {
 	minesweeper::Minesweeper mainWindow(50);
-	if (mainWindow.Construct(1024, 512 + MS_TOPBAR_SIZE, 1, 1))
+	if (mainWindow.Construct(512, 512 + MS_TOPBAR_SIZE, 1, 1))
 		mainWindow.Start();
 
 	return 0;
