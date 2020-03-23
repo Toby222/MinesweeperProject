@@ -39,7 +39,7 @@ namespace minesweeper {
 		}
 
 		static olc::Sprite** IntToSprites(int value) {
-			olc::Sprite* sprites[3] = { Sprites::digitSprites[9], Sprites::digitSprites[9], Sprites::digitSprites[9] };
+			olc::Sprite** sprites = new olc::Sprite * [3]{ Sprites::digitSprites[9], Sprites::digitSprites[9], Sprites::digitSprites[9] };
 			if (value < 999)
 			{
 				sprites[0] = digitSprites[value / 100 % 10];
@@ -173,35 +173,49 @@ namespace minesweeper {
 				this->state = State::closed;
 		}
 
-		// Returns gameOver
-		bool TryOpen(std::vector<std::vector<Square*>> field) {
+		// Returns amount of opened squares
+		// -1 if it was a mine.
+		int TryOpen(std::vector<std::vector<Square*>> field, std::vector<Square*>* opened = nullptr) {
 			if (this->state == State::closed ||
 				this->state == State::pressed) {
 				this->state = State::open;
+				if (opened == nullptr)
+					opened = new std::vector<Square*>();
+				opened->push_back(this);
 				if (this->isMine)
-					return true;
-				if (this->value == 0) {
+					return -1;
+				if (this->value == 0 && std::find(opened->begin(), opened->end(), this) != opened->end()) {
+					int result = 1;
 					for (auto neighbor : this->neighbors) {
 						if (neighbor == nullptr)
 							continue;
-						field[neighbor->position.y][neighbor->position.x]->TryOpen(field);
+						result += field[neighbor->position.y][neighbor->position.x]->TryOpen(field, opened);
 					}
+					return result;
+				}
+				else {
+					return 1;
 				}
 			}
-			return false;
+			return 0;
 		}
 
-		void TryFlag() {
+		int TryFlag() {
 			switch (this->state) {
 				case(State::closed):
 					this->state = State::flagged;
+					return +1;
 					break;
 				case(State::flagged):
 					this->state = State::closed;
+					return -1;
 					break;
 				case(State::pressed):
 				case(State::open):
+					return +0;
 					break;
+				default:
+					throw std::exception("Invalid Square state");
 			}
 		}
 	};
@@ -219,6 +233,8 @@ namespace minesweeper {
 			gameOver
 		} gameState = State::newgame;
 		int minecount;
+		int flaggedSquares;
+		int openedSquares;
 
 	public:
 		Minesweeper(int minecount = 35)
@@ -235,7 +251,7 @@ namespace minesweeper {
 			std::default_random_engine generator;
 
 			if ((MS_FIELD_SIZE & MS_FIELD_SIZE >> 1) != 0)
-				throw std::exception("Invalid field size. Has to be power of 2.");
+				throw std::exception("Invalid this->field size. Has to be power of 2.");
 
 			if (ScreenWidth() % MS_FIELD_SIZE != 0)
 				throw std::exception("Invalid screen width.");
@@ -248,44 +264,46 @@ namespace minesweeper {
 		}
 
 		void CreateField(int minecount = -1) {
-			gameState = State::newgame;
-			passedSeconds = 0;
+			this->gameState = State::newgame;
+			this->passedSeconds = 0;
+			this->flaggedSquares = 0;
+			this->openedSquares = 0;
 
-			for (auto row : field)
+			for (auto row : this->field)
 				for (auto square : row)
 					delete square;
-			
-			field.clear();
+
+			this->field.clear();
 
 			for (int y = 0; y < (ScreenHeight() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE; y++) {
-				field.push_back(std::vector<Square*>());
+				this->field.push_back(std::vector<Square*>());
 				for (int x = 0; x < ScreenWidth() / MS_FIELD_SIZE; x++) {
-					field[y].push_back(new Square(olc::vi2d(x, y)));
+					this->field[y].push_back(new Square(olc::vi2d(x, y)));
 				}
 			}
 
 			if (minecount == -1)
 				minecount = this->minecount;
-			if (minecount >= (field.size() * field[0].size()))
-				throw std::exception("Invalid mine count for this field size.");
+			if (minecount >= (this->field.size() * this->field[0].size()))
+				throw std::exception("Invalid mine count for this this->field size.");
 
-			std::uniform_int_distribution<> randomX(0, (int)field[0].size() - 1);
-			std::uniform_int_distribution<> randomY(0, (int)field.size() - 1);
+			std::uniform_int_distribution<> randomX(0, (int)this->field[0].size() - 1);
+			std::uniform_int_distribution<> randomY(0, (int)this->field.size() - 1);
 
 			std::random_device rd;
 			std::default_random_engine gen(rd());
 
 			for (int i = 0; i < minecount; i++) {
-				auto newMine = field[randomY(gen)][randomX(gen)];
+				auto newMine = this->field[randomY(gen)][randomX(gen)];
 				if (newMine->isMine)
 					i--;
 				else
 					newMine->isMine = true;
 			}
 
-			for (auto row : field)
+			for (auto row : this->field)
 				for (auto square : row)
-					square->setNeighbors(&field);
+					square->setNeighbors(&this->field);
 
 			for (int y = 0; y < MS_TOPBAR_SIZE; y++)
 				for (int x = 0; x < ScreenWidth(); x++)
@@ -320,12 +338,14 @@ namespace minesweeper {
 						neighbor->TryRelease();
 			}
 
-			if (mousePos.y >= 0 && mousePos.y < field.size() &&
-				mousePos.x >= 0 && mousePos.x < field[0].size() &&
+			if (mousePos.y >= 0 && mousePos.y < this->field.size() &&
+				mousePos.x >= 0 && mousePos.x < this->field[0].size() &&
 				GetMouseY() > MS_TOPBAR_SIZE) {
-				hoveredSquare = field[mousePos.y][mousePos.x];
-				if (GetMouse(1).bPressed && !(gameState == State::gameOver))
-					hoveredSquare->TryFlag();
+				hoveredSquare = this->field[mousePos.y][mousePos.x];
+				if (GetMouse(1).bPressed && !(gameState == State::gameOver)) {
+					this->gameState = State::playing;
+					this->flaggedSquares += hoveredSquare->TryFlag();
+				}
 
 				if (GetMouse(2).bHeld && !(gameState == State::gameOver)) {
 					for (auto neighbor : hoveredSquare->neighbors)
@@ -340,23 +360,33 @@ namespace minesweeper {
 
 					if (flaggedNeighbors == hoveredSquare->value)
 						for (auto neighbor : hoveredSquare->neighbors)
-							if (neighbor != nullptr)
-								if (neighbor->TryOpen(field))
+						{
+							if (neighbor != nullptr) {
+								int opened = neighbor->TryOpen(this->field);
+								this->openedSquares += opened;
+								if (opened == -1)
 									gameState = State::gameOver;
+							}
+						}
 				}
 
 				if ((GetMouse(0).bReleased) && !(gameState == State::gameOver)) {
 					while (gameState == State::newgame && hoveredSquare->isMine)
 					{
 						CreateField(this->minecount);
-						hoveredSquare = field[mousePos.y][mousePos.x];
+						hoveredSquare = this->field[mousePos.y][mousePos.x];
 					}
 					gameState = State::playing;
-					if (hoveredSquare->TryOpen(field))
+					int opened = hoveredSquare->TryOpen(this->field);
+					this->openedSquares += opened;
+					if (opened == -1)
 						gameState = State::gameOver;
 				}
 				else if ((GetMouse(0).bHeld || GetMouse(2).bHeld) && !(gameState == State::gameOver))
 					hoveredSquare->TryPress();
+
+				if ((this->field[0].size() * this->field.size()) - this->openedSquares == this->minecount)
+					this->gameState = State::gameOver;
 			}
 
 			if (GetMouse(0).bPressed || GetMouse(0).bHeld || GetMouse(0).bReleased ||
@@ -366,10 +396,12 @@ namespace minesweeper {
 			}
 
 			if (redrawField) {
-
-				for (auto row : field)
+				for (auto row : this->field)
 					for (auto square : row)
 						DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite(gameState == State::gameOver));
+				olc::Sprite** mineCounterSprites = Sprites::IntToSprites(this->minecount - this->flaggedSquares);
+				for (int i = 0; i < 3; i++)
+					DrawSprite(this->ScreenWidth() - 4 - mineCounterSprites[0]->width * (3 - i), 4, mineCounterSprites[i]);
 			}
 
 			// if             new second passed                          or redraw is forced
@@ -386,7 +418,7 @@ namespace minesweeper {
 
 int main()
 {
-	minesweeper::Minesweeper mainWindow(100);
+	minesweeper::Minesweeper mainWindow(50);
 	if (mainWindow.Construct(1024, 512 + MS_TOPBAR_SIZE, 1, 1))
 		mainWindow.Start();
 
