@@ -250,11 +250,12 @@ namespace minesweeper {
 		void CreateField(int minecount = -1) {
 			gameState = State::newgame;
 			passedSeconds = 0;
-			field.clear();
 
 			for (auto row : field)
 				for (auto square : row)
 					delete square;
+			
+			field.clear();
 
 			for (int y = 0; y < (ScreenHeight() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE; y++) {
 				field.push_back(std::vector<Square*>());
