@@ -5,6 +5,7 @@
 
 #define MS_FIELD_SIZE 16
 #define MS_TOPBAR_SIZE 31
+#define MS_SCALE 2
 
 namespace minesweeper {
 	const olc::vi2d offsets[8]{
@@ -40,7 +41,7 @@ namespace minesweeper {
 
 		static olc::Sprite** IntToSprites(int value) {
 			olc::Sprite** sprites = new olc::Sprite * [3]{ Sprites::digitSprites[9], Sprites::digitSprites[9], Sprites::digitSprites[9] };
-			if (0 < value && value < 999)
+			if (0 <= value && value < 999)
 			{
 				sprites[0] = digitSprites[value / 100 % 10];
 				sprites[1] = digitSprites[value / 10 % 10];
@@ -331,7 +332,7 @@ namespace minesweeper {
 			if (fElapsedTime >= 0 && gameState == State::playing)
 				passedSeconds += fElapsedTime;
 
-			if (!Minesweeper::IsFocused())
+			if (!Minesweeper::IsFocused() && !((int)(passedSeconds - fElapsedTime) < (int)passedSeconds || fElapsedTime < 0))
 				return true;
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
@@ -441,7 +442,8 @@ namespace minesweeper {
 int main()
 {
 	minesweeper::Minesweeper mainWindow(50);
-	if (mainWindow.Construct(512, 512 + MS_TOPBAR_SIZE, 1, 1))
+
+	if (mainWindow.Construct(MS_FIELD_SIZE * 16, MS_FIELD_SIZE * 16 + MS_TOPBAR_SIZE, MS_SCALE, MS_SCALE))
 		mainWindow.Start();
 
 	return 0;
