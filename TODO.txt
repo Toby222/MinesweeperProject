@@ -1,0 +1,15 @@
+F1 -> Help
+F2 -> Credits
+
+F3 -> Hint ?
+
+F11 -> Fullscreen
+
++/- -> zoom
+>Or with options
+
+
+Better border w/ Sprites??
+Hinting
+
+Change sizes // SetScreenSize
