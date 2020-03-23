@@ -242,10 +242,15 @@ namespace minesweeper {
 			gameState = State::newgame;
 			field.clear();
 
+			for (auto row : field)
+				for (auto square : row)
+					delete square;
+
 			for (int y = 0; y < (ScreenHeight() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE; y++) {
 				field.push_back(std::vector<Square*>());
-				for (int x = 0; x < ScreenWidth() / MS_FIELD_SIZE; x++)
+				for (int x = 0; x < ScreenWidth() / MS_FIELD_SIZE; x++) {
 					field[y].push_back(new Square(olc::vi2d(x, y)));
+				}
 			}
 
 			if (minecount == -1)
@@ -361,7 +366,7 @@ namespace minesweeper {
 
 int main()
 {
-	minesweeper::Minesweeper mainWindow(200);
+	minesweeper::Minesweeper mainWindow(1);
 	if (mainWindow.Construct(1024, 512 + MS_TOPBAR_SIZE, 1, 1))
 		mainWindow.Start();
 
