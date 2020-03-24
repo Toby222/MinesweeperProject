@@ -155,7 +155,6 @@
     <ClCompile Include="MinesweeperMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="olcPGEX_PopUpMenu.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

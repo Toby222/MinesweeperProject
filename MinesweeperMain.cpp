@@ -231,20 +231,34 @@ namespace minesweeper {
 			}
 		}
 	};
-
 	struct Settings {
-		int minecount;
-		olc::vi2d fieldsize;
+		int minecount = 0;
+		olc::vi2d fieldsize = olc::vi2d();
 	};
 
 	class SettingsWindow : public olc::PixelGameEngine {
 	public:
-		SettingsWindow()
-		{
-		}
 
-		Settings GetSettings() {
-		}
+		minesweeper::Settings settings;
+
+		minesweeper::Settings GetSettings() {
+			return this->settings;
+		};
+
+		bool OnUserCreate() override { return true; };
+		bool OnUserUpdate(float fElapsedTime) override {
+			if (!IsFocused())
+				return true;
+			if (GetKey(olc::Key::ESCAPE).bPressed)
+				return false;
+			this->DrawString(olc::vi2d(0, 0), "UwU");
+			return true;
+		};
+
+		SettingsWindow(Settings settings) {
+			this->Construct(200, 200, MS_SCALE,MS_SCALE);
+			this->settings = settings;
+		};
 	};
 
 	class MainGame : public olc::PixelGameEngine {
@@ -260,14 +274,18 @@ namespace minesweeper {
 			gameOver
 		} gameState = State::newgame;
 		Settings settings;
+		SettingsWindow* settingsWindow;
+
 		int flaggedSquares;
 		int openedSquares;
 
 	public:
-		MainGame(Settings settings)
+		MainGame(Settings settings, SettingsWindow* settingsWindow)
 		{
 			this->settings = settings;
+			this->settingsWindow = settingsWindow;
 			sAppName = "Minesweeper";
+			this->Construct(settings.fieldsize.x * MS_FIELD_SIZE, settings.fieldsize.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, MS_SCALE, MS_SCALE);
 		}
 
 		// Called once at the start, so create things here
@@ -285,12 +303,12 @@ namespace minesweeper {
 			if ((ScreenHeight() - MS_TOPBAR_SIZE) % MS_FIELD_SIZE != 0)
 				throw std::exception("Invalid screen height.");
 
-			CreateField(this->settings.minecount);
+			this->CreateField();
 
 			return true;
 		}
 
-		void CreateField(int minecount = -1) {
+		void CreateField() {
 			this->gameState = State::newgame;
 			this->passedSeconds = 0;
 			this->flaggedSquares = 0;
@@ -298,9 +316,11 @@ namespace minesweeper {
 			this->prevHoveredSquare = nullptr;
 			this->hoveredSquare = nullptr;
 
-			for (auto row : this->field)
+			for (auto row : this->field) {
 				for (auto square : row)
 					delete square;
+				row.clear();
+			}
 
 			this->field.clear();
 
@@ -311,9 +331,7 @@ namespace minesweeper {
 				}
 			}
 
-			if (minecount == -1)
-				minecount = this->settings.minecount;
-			if (minecount >= (this->field.size() * this->field[0].size()))
+			if (this->settings.minecount >= (this->field.size() * this->field[0].size()))
 				throw std::exception("Invalid mine count for this this->field size.");
 
 			std::uniform_int_distribution<> randomX(0, (int)this->field[0].size() - 1);
@@ -322,7 +340,7 @@ namespace minesweeper {
 			std::random_device rd;
 			std::default_random_engine gen(rd());
 
-			for (int i = 0; i < minecount; i++) {
+			for (int i = 0; i < this->settings.minecount; i++) {
 				auto newMine = this->field[randomY(gen)][randomX(gen)];
 				if (newMine->isMine)
 					i--;
@@ -341,7 +359,7 @@ namespace minesweeper {
 		}
 
 		// Called once per frame; fElapsedTime is dT in seconds
-		// Hacky: negative fElapsedTime forces redraw
+		// Hacky: negative fElapsedTime forces redraw; implies that it was called manually, to avoid infinite recursion
 		bool OnUserUpdate(float fElapsedTime) override
 		{
 			if (fElapsedTime >= 0 && gameState == State::playing)
@@ -352,14 +370,11 @@ namespace minesweeper {
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
 			if (GetKey(olc::Key::F5).bPressed && fElapsedTime >= 0)
-				CreateField(this->settings.minecount);
-			if (GetKey(olc::Key::F8).bPressed)
+				this->CreateField();
+			if (GetKey(olc::Key::F8).bPressed && fElapsedTime >= 0)
 			{
-				auto settings = new SettingsWindow();
-				settings->Construct(200, 200, 1, 1);
-				settings->Start();
-				settings->GetSettings();
-				delete settings;
+				this->settingsWindow->Start();
+				this->CreateField();
 			}
 
 			prevHoveredSquare = hoveredSquare;
@@ -419,7 +434,7 @@ namespace minesweeper {
 				if ((GetMouse(0).bReleased) && !(gameState == State::gameOver)) {
 					while (gameState == State::newgame && hoveredSquare->isMine)
 					{
-						CreateField(this->settings.minecount);
+						this->CreateField();
 						hoveredSquare = this->field[mousePos.y][mousePos.x];
 					}
 					gameState = State::playing;
@@ -469,10 +484,8 @@ int main()
 		olc::vi2d(16,16)
 	};
 
-	minesweeper::MainGame mainWindow(settings);
-
-	if (mainWindow.Construct(0, MS_TOPBAR_SIZE, MS_SCALE, MS_SCALE))
-		mainWindow.Start();
+	minesweeper::MainGame mainWindow(settings, new minesweeper::SettingsWindow(settings));
+	mainWindow.Start();
 
 	return 0;
 }

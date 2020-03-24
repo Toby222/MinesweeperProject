@@ -18,9 +18,6 @@
     <ClInclude Include="olcPixelGameEngine.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="olcPGEX_PopUpMenu.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MinesweeperMain.cpp">
