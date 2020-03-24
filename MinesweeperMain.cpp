@@ -232,7 +232,22 @@ namespace minesweeper {
 		}
 	};
 
-	class Minesweeper : public olc::PixelGameEngine {
+	struct Settings {
+		int minecount;
+		olc::vi2d fieldsize;
+	};
+
+	class SettingsWindow : public olc::PixelGameEngine {
+	public:
+		SettingsWindow()
+		{
+		}
+
+		Settings GetSettings() {
+		}
+	};
+
+	class MainGame : public olc::PixelGameEngine {
 	private:
 		std::vector<std::vector<Square*>> field;
 		Square* hoveredSquare;
@@ -244,14 +259,14 @@ namespace minesweeper {
 			playing,
 			gameOver
 		} gameState = State::newgame;
-		int minecount;
+		Settings settings;
 		int flaggedSquares;
 		int openedSquares;
 
 	public:
-		Minesweeper(int minecount = 35)
+		MainGame(Settings settings)
 		{
-			this->minecount = minecount;
+			this->settings = settings;
 			sAppName = "Minesweeper";
 		}
 
@@ -270,7 +285,7 @@ namespace minesweeper {
 			if ((ScreenHeight() - MS_TOPBAR_SIZE) % MS_FIELD_SIZE != 0)
 				throw std::exception("Invalid screen height.");
 
-			CreateField(this->minecount);
+			CreateField(this->settings.minecount);
 
 			return true;
 		}
@@ -297,7 +312,7 @@ namespace minesweeper {
 			}
 
 			if (minecount == -1)
-				minecount = this->minecount;
+				minecount = this->settings.minecount;
 			if (minecount >= (this->field.size() * this->field[0].size()))
 				throw std::exception("Invalid mine count for this this->field size.");
 
@@ -332,12 +347,20 @@ namespace minesweeper {
 			if (fElapsedTime >= 0 && gameState == State::playing)
 				passedSeconds += fElapsedTime;
 
-			if (!Minesweeper::IsFocused() && !((int)(passedSeconds - fElapsedTime) < (int)passedSeconds || fElapsedTime < 0))
+			if (!this->IsFocused() && !((int)(passedSeconds - fElapsedTime) < (int)passedSeconds || fElapsedTime < 0))
 				return true;
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
 			if (GetKey(olc::Key::F5).bPressed && fElapsedTime >= 0)
-				CreateField(this->minecount);
+				CreateField(this->settings.minecount);
+			if (GetKey(olc::Key::F8).bPressed)
+			{
+				auto settings = new SettingsWindow();
+				settings->Construct(200, 200, 1, 1);
+				settings->Start();
+				settings->GetSettings();
+				delete settings;
+			}
 
 			prevHoveredSquare = hoveredSquare;
 			hoveredSquare = nullptr;
@@ -396,7 +419,7 @@ namespace minesweeper {
 				if ((GetMouse(0).bReleased) && !(gameState == State::gameOver)) {
 					while (gameState == State::newgame && hoveredSquare->isMine)
 					{
-						CreateField(this->minecount);
+						CreateField(this->settings.minecount);
 						hoveredSquare = this->field[mousePos.y][mousePos.x];
 					}
 					gameState = State::playing;
@@ -408,7 +431,7 @@ namespace minesweeper {
 				else if ((GetMouse(0).bHeld || GetMouse(2).bHeld) && !(gameState == State::gameOver))
 					hoveredSquare->TryPress();
 
-				if ((this->field[0].size() * this->field.size()) - this->openedSquares == this->minecount)
+				if ((this->field[0].size() * this->field.size()) - this->openedSquares == this->settings.minecount)
 					this->gameState = State::gameOver;
 			}
 
@@ -422,7 +445,7 @@ namespace minesweeper {
 				for (auto row : this->field)
 					for (auto square : row)
 						DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite(gameState == State::gameOver));
-				olc::Sprite** mineCounterSprites = Sprites::IntToSprites(this->minecount - this->flaggedSquares);
+				olc::Sprite** mineCounterSprites = Sprites::IntToSprites(this->settings.minecount - this->flaggedSquares);
 				for (int i = 0; i < 3; i++)
 					DrawSprite(this->ScreenWidth() - 4 - mineCounterSprites[0]->width * (3 - i), 4, mineCounterSprites[i]);
 			}
@@ -441,9 +464,14 @@ namespace minesweeper {
 
 int main()
 {
-	minesweeper::Minesweeper mainWindow(50);
+	minesweeper::Settings settings = {
+		50,
+		olc::vi2d(16,16)
+	};
 
-	if (mainWindow.Construct(MS_FIELD_SIZE * 16, MS_FIELD_SIZE * 16 + MS_TOPBAR_SIZE, MS_SCALE, MS_SCALE))
+	minesweeper::MainGame mainWindow(settings);
+
+	if (mainWindow.Construct(0, MS_TOPBAR_SIZE, MS_SCALE, MS_SCALE))
 		mainWindow.Start();
 
 	return 0;
