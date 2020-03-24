@@ -3,8 +3,6 @@ F2 -> Credits
 
 F3 -> Hint ?
 
-F11 -> Fullscreen
-
 +/- -> zoom
 >Or with options
 
