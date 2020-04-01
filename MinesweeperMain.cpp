@@ -88,7 +88,7 @@ namespace minesweeper {
 				exit(EXIT_FAILURE);
 			}
 		}
-
+		//                  012345678          0123456789-
 		static olc::Sprite* fieldSprites[9], * digitSprites[11], * closed, * flagged, * revealedmine, * falsemine, * clickedmine;
 	};
 	olc::Sprite* Sprites::fieldSprites[9], * Sprites::digitSprites[11], * Sprites::closed, * Sprites::flagged, * Sprites::revealedmine, * Sprites::falsemine, * Sprites::clickedmine;
