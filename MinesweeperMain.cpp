@@ -375,15 +375,6 @@ namespace minesweeper {
 
 			auto mousePos = olc::vi2d(GetMouseX(), GetMouseY() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE;
 
-#ifndef NDEBUG
-			if (GetKey(olc::Key::T).bHeld && GetKey(olc::Key::B).bPressed)
-				for (auto row : this->field)
-					for (auto square : row) {
-						this->flaggedSquares += square->TryFlag();
-						redrawField = true;
-					}
-#endif // !NDEBUG
-
 			if (GetKey(olc::Key::F2).bPressed)
 			{
 				if (display == Display::config) {
