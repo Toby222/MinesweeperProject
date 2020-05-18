@@ -242,11 +242,19 @@ namespace minesweeper {
 		Square* prevHoveredSquare;
 		float passedSeconds;
 
+		olc::ctrls::Slider* amountSlider;
+
 		enum class State {
 			newgame,
 			playing,
 			gameOver
 		} gameState = State::newgame;
+		enum class Display {
+			help,
+			config,
+			game
+		} display = Display::game;
+
 		int minecount;
 		int flaggedSquares;
 		int openedSquares;
