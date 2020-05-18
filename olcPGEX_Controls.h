@@ -39,7 +39,6 @@
 
 		bool OnUserCreate() override
 		{
-
 			olc::ctrls::Initialize(this);
 
 			olc::ctrls::Slider red(olc::vf2d(200, 200), 300, olc::ctrls::HORIZONTAL, olc::GREY, olc::GREEN);
@@ -535,8 +534,8 @@ namespace olc
 			{
 				if (orientation == HORIZONTAL)
 				{
-					Box* boundingBox = new Box(x + headOffset, y - 30 / 2, 10, 30);
-   					if (boundingBox->Contains(pge->GetMouseX(), pge->GetMouseY()))
+					Box* boundingBox = new Box(x + headOffset - 5, y - 30 / 2, 10, 30);
+					if (boundingBox->Contains(pge->GetMouseX(), pge->GetMouseY()))
 					{
 						CallMouseHover(this);
 						if (pge->GetMouse(0).bPressed || pge->GetMouse(1).bPressed || pge->GetMouse(2).bPressed)
@@ -563,7 +562,7 @@ namespace olc
 						}
 					}
 					pge->FillRect(x, y, size, 5, backgroundColor);
-					pge->FillRect(x + headOffset, y - 30 / 2, 10, 30, foregroundColor);
+					pge->FillRect(x + headOffset - 5, y - 30 / 2, 10, 30, foregroundColor);
 					pge->FillRect(x, y, headOffset, 5, foregroundColor);
 					delete boundingBox;
 					return;
@@ -815,7 +814,6 @@ namespace olc
 				pge->FillRect(x, y, size.x, topBarHeight, topBarColor);
 				delete boundingBox;
 			}
-
 		};
 
 		/* A basic checkbox pool */
@@ -856,7 +854,6 @@ namespace olc
 			}
 			return checkBoxPool;
 		}
-
 	}
 }
 #endif
