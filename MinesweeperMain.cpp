@@ -255,7 +255,7 @@ namespace minesweeper {
 			help,
 			config,
 			game
-		} display = Display::game;
+		} display = Display::help;
 
 		int minecount;
 		int flaggedSquares;
@@ -289,8 +289,7 @@ namespace minesweeper {
 			if ((ScreenHeight() - MS_TOPBAR_SIZE) % MS_FIELD_SIZE != 0)
 				throw std::exception("Invalid screen height.");
 
-			CreateField(this->minecount);
-			OnUserUpdate(-1);
+			CreateField(0);
 
 			return true;
 		}
@@ -338,10 +337,6 @@ namespace minesweeper {
 			for (auto row : this->field)
 				for (auto square : row)
 					square->setNeighbors(&this->field);
-
-			for (int y = 0; y < MS_TOPBAR_SIZE; y++)
-				for (int x = 0; x < ScreenWidth(); x++)
-					Draw(x, y, olc::DARK_GREY);
 		}
 
 		// Called once per frame; fElapsedTime is dT in seconds
@@ -359,8 +354,11 @@ namespace minesweeper {
 			bool redrawField = fElapsedTime < 0;
 
 			if (GetKey(olc::Key::F5).bPressed && fElapsedTime >= 0) {
-				this->display = Display::game;
+				display = Display::game;
 				CreateField(this->minecount);
+				for (int y = 0; y < MS_TOPBAR_SIZE; y++)
+					for (int x = 0; x < ScreenWidth(); x++)
+						Draw(x, y, olc::DARK_GREY);
 				redrawField = true;
 			}
 
@@ -384,26 +382,26 @@ namespace minesweeper {
 					if (fElapsedTime >= 0)
 						this->CreateField();
 					display = Display::game;
+					for (int y = 0; y < MS_TOPBAR_SIZE; y++)
+						for (int x = 0; x < ScreenWidth(); x++)
+							Draw(x, y, olc::DARK_GREY);
 					redrawField = true;
 				}
 				else {
 					display = Display::config;
 
 					// Why doesn't this cause a memory leak?
-					amountSlider = new olc::ctrls::Slider({ 5, MS_TOPBAR_SIZE * 2 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::DARK_GREY, olc::GREY);
-
-					// Weirdness with CTRLS
-					amountSlider->SetHeadOffset((float)minecount / ((float)(getMaxMines() - 1)) * (amountSlider->GetWidth() - 1));
+					amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::DARK_GREY, olc::GREY);
+					amountSlider->SetHeadOffset((float)(this->minecount - 1) / ((float)(getMaxMines()-2)) * amountSlider->GetWidth());
 				}
 			}
-			else if (GetKey(olc::Key::F1).bPressed) {
+			if (GetKey(olc::Key::F1).bPressed) {
 				display = Display::help;
+				Clear(olc::BLACK);
 			}
 			switch (this->display)
 			{
 				// HILFE
-
-				// EINSTELLUNGEN
 			case(Display::help):
 			{
 				DrawStringDecal({ 8,8 }, "Keybinds\n------------------------------\nF1: Help\nF2: Settings\nF5: New Game\n\n\nControls\n------------------------------\nLMB: Reveal Square\nRMB: Flag Square\nMMB: Reveal adjacent Squares");
@@ -414,19 +412,17 @@ namespace minesweeper {
 			case(Display::config):
 			{
 				Clear(olc::BLACK);
-				for (int y = 0; y < MS_TOPBAR_SIZE; y++)
-					for (int x = 0; x < ScreenWidth(); x++)
-						Draw(x, y, olc::DARK_GREY);
-
 				// DrawStringDecal({ 0,0 }, "Einstellungen");
-				DrawStringDecal({ 0,0 }, "Settings");
+				DrawStringDecal({ 8,8 }, "Settings\n------------------------------\n\nMines:");
 				amountSlider->Update();
 				amountSlider->SetHeadOffset(std::clamp(amountSlider->GetHeadOffset(), 0.0f, amountSlider->GetWidth()));
+#ifndef NDEBUG
 				printf_s("%f\n", amountSlider->GetPercent());
+#endif // !NDEBUG
 
 				minecount = std::roundf(this->amountSlider->Value(getMaxMines() - 2) + 1);
 
-				DrawStringDecal({ 0,this->amountSlider->GetY() - 30 }, std::string("Mines: ") + std::to_string(minecount));
+				DrawStringDecal({ 64,32 }, std::to_string(minecount));
 
 				return true;
 			}
