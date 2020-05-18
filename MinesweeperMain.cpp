@@ -354,6 +354,12 @@ namespace minesweeper {
 
 		bool OnUserUpdate(float fElapsedTime) override
 		{
+			Clear(olc::DARK_GREY);
+			if (!IsFocused()) {
+				DrawString({ 8,8 }, "GAME PAUSED!");
+				return true;
+			}
+
 			if (fElapsedTime >= 0 && gameState == State::playing)
 				passedSeconds += fElapsedTime;
 
@@ -365,9 +371,6 @@ namespace minesweeper {
 			if (GetKey(olc::Key::F5).bPressed && fElapsedTime >= 0) {
 				display = Display::game;
 				CreateField(this->minecount);
-				for (int y = 0; y < MS_TOPBAR_SIZE; y++)
-					for (int x = 0; x < ScreenWidth(); x++)
-						Draw(x, y, olc::DARK_GREY);
 			}
 
 			prevHoveredSquare = hoveredSquare;
@@ -381,21 +384,17 @@ namespace minesweeper {
 					if (fElapsedTime >= 0)
 						this->CreateField();
 					display = Display::game;
-					for (int y = 0; y < MS_TOPBAR_SIZE; y++)
-						for (int x = 0; x < ScreenWidth(); x++)
-							Draw(x, y, olc::DARK_GREY);
 				}
 				else {
 					display = Display::config;
 
 					// Why doesn't this cause a memory leak?
-					amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::DARK_GREY, olc::GREY);
+					amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::VERY_DARK_GREY, olc::GREY);
 					amountSlider->SetHeadOffset((float)(this->minecount - 1) / ((float)(getMaxMines() - 2)) * amountSlider->GetWidth());
 				}
 			}
 			if (GetKey(olc::Key::F1).bPressed) {
 				display = Display::help;
-				Clear(olc::BLACK);
 			}
 			switch (this->display)
 			{
@@ -414,13 +413,9 @@ namespace minesweeper {
 			// EINSTELLUNGEN
 			case(Display::config):
 			{
-				Clear(olc::BLACK);
 				DrawStringDecal({ 8,8 }, "Settings\n------------------------------\n\nMines:");
 				amountSlider->Update();
 				amountSlider->SetHeadOffset(std::clamp(amountSlider->GetHeadOffset(), 0.0f, amountSlider->GetWidth()));
-#ifndef NDEBUG
-				printf_s("%f\n", amountSlider->GetPercent());
-#endif // !NDEBUG
 
 				minecount = std::roundf(this->amountSlider->Value(getMaxMines() - 2) + 1);
 
