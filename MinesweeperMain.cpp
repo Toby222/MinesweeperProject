@@ -217,20 +217,20 @@ namespace minesweeper {
 
 		int TryFlag() {
 			switch (this->state) {
-				case(State::closed):
-					this->state = State::flagged;
-					return +1;
-					break;
-				case(State::flagged):
-					this->state = State::closed;
-					return -1;
-					break;
-				case(State::pressed):
-				case(State::open):
-					return +0;
-					break;
-				default:
-					throw std::exception("Invalid Square state");
+			case(State::closed):
+				this->state = State::flagged;
+				return +1;
+				break;
+			case(State::flagged):
+				this->state = State::closed;
+				return -1;
+				break;
+			case(State::pressed):
+			case(State::open):
+				return +0;
+				break;
+			default:
+				throw std::exception("Invalid Square state");
 			}
 		}
 	};
@@ -372,7 +372,7 @@ namespace minesweeper {
 			if (GetKey(olc::Key::F2).bPressed)
 			{
 				if (this->display == Display::config) {
-					if(fElapsedTime >= 0)
+					if (fElapsedTime >= 0)
 						this->CreateField();
 					this->display = Display::game;
 					redrawField = true;
@@ -380,7 +380,8 @@ namespace minesweeper {
 				else {
 					this->display = Display::config;
 
-					this->amountSlider = new olc::ctrls::Slider({ 10, MS_TOPBAR_SIZE*2 },200,olc::ctrls::Orientation::HORIZONTAL, olc::GREY, olc::GREEN);
+					// Why doesn't this cause a memory leak?
+					this->amountSlider = new olc::ctrls::Slider({ 10, MS_TOPBAR_SIZE * 2 }, 200, olc::ctrls::Orientation::HORIZONTAL, olc::GREY, olc::GREEN);
 				}
 			}
 			switch (this->display)
@@ -396,9 +397,9 @@ namespace minesweeper {
 				DrawStringDecal({ 0,0 }, "Einstellungen");
 				this->amountSlider->Update();
 
-				int maxMines = this->field.size() * this->field[0].size()-4;
+				int maxMines = this->field.size() * this->field[0].size() - 4;
 
-				DrawStringDecal({ 0,64 }, std::to_string((int)this->amountSlider->Value(maxMines)+2));
+				DrawStringDecal({ 0,64 }, std::to_string((int)this->amountSlider->Value(maxMines) + 2));
 
 				return true;
 			}
