@@ -24,7 +24,7 @@ namespace minesweeper {
 		olc::vi2d(1, 1)
 	};
 
-	struct Sprites {
+	struct Graphics {
 		olc::Sprite* LoadSprite(std::string filename, olc::vi2d expectedSize = olc::vi2d(-1, -1)) {
 			std::cout << filename << std::endl;
 			std::stringstream filepath;
@@ -44,28 +44,28 @@ namespace minesweeper {
 			return newSprite;
 		}
 
-		static olc::Sprite** IntToSprites(int value) {
-			olc::Sprite** sprites = new olc::Sprite * [3]{ Sprites::digitSprites[9], Sprites::digitSprites[9], Sprites::digitSprites[9] };
+		static olc::Decal** IntToDecals(int value) {
+			olc::Decal** decals = new olc::Decal * [3]{ Graphics::digitDecals[9], Graphics::digitDecals[9], Graphics::digitDecals[9] };
 			if (0 <= value && value < 999)
 			{
-				sprites[0] = digitSprites[value / 100 % 10];
-				sprites[1] = digitSprites[value / 10 % 10];
-				sprites[2] = digitSprites[value % 10];
+				decals[0] = digitDecals[value / 100 % 10];
+				decals[1] = digitDecals[value / 10 % 10];
+				decals[2] = digitDecals[value % 10];
 			}
 			if (-99 < value && value < 0) {
-				sprites[0] = digitSprites[10];
-				sprites[1] = digitSprites[-value / 10 % 10];
-				sprites[2] = digitSprites[-value % 10];
+				decals[0] = digitDecals[10];
+				decals[1] = digitDecals[-value / 10 % 10];
+				decals[2] = digitDecals[-value % 10];
 			}
 			if (value <= -99) {
-				sprites[0] = digitSprites[10];
-				sprites[1] = digitSprites[9];
-				sprites[2] = digitSprites[9];
+				decals[0] = digitDecals[10];
+				decals[1] = digitDecals[9];
+				decals[2] = digitDecals[9];
 			}
-			return sprites;
+			return decals;
 		}
 
-		Sprites() {
+		Graphics() {
 			std::cout << "Loading sprites...\n";
 			try
 			{
@@ -74,17 +74,26 @@ namespace minesweeper {
 					filename.str("");
 					filename << "field" << i << ".png";
 					fieldSprites[i] = LoadSprite(filename.str(), olc::vi2d(MS_FIELD_SIZE, MS_FIELD_SIZE));
+					fieldDecals[i] = new olc::Decal(fieldSprites[i]);
 					filename.str("");
 					filename << "digit" << i << ".png";
 					digitSprites[i] = LoadSprite(filename.str(), olc::vi2d(13, 23));
+					digitDecals[i] = new olc::Decal(digitSprites[i]);
 				}
 				digitSprites[9] = LoadSprite("digit9.png");
+				digitDecals[9] = new olc::Decal(digitSprites[9]);
 				digitSprites[10] = LoadSprite("digit-.png");
-				closed = LoadSprite("closed.png");
-				falsemine = LoadSprite("falsemine.png");
-				flagged = LoadSprite("flagged.png");
-				revealedmine = LoadSprite("revealedmine.png");
-				clickedmine = LoadSprite("clickedmine.png");
+				digitDecals[10] = new olc::Decal(digitSprites[10]);
+				closedSprite = LoadSprite("closed.png");
+				closedDecal = new olc::Decal(closedSprite);
+				falsemineSprite = LoadSprite("falsemine.png");
+				closedDecal = new olc::Decal(closedSprite);
+				flaggedSprite = LoadSprite("flagged.png");
+				flaggedDecal = new olc::Decal(flaggedSprite);
+				revealedmineSprite = LoadSprite("revealedmine.png");
+				revealedmineDecal = new olc::Decal(revealedmineSprite);
+				clickedmineSprite = LoadSprite("clickedmine.png");
+				clickedmineDecal = new olc::Decal(clickedmineSprite);
 			}
 			catch (const std::exception& err)
 			{
@@ -94,9 +103,12 @@ namespace minesweeper {
 			}
 		}
 		//                  012345678          0123456789-
-		static olc::Sprite* fieldSprites[9], * digitSprites[11], * closed, * flagged, * revealedmine, * falsemine, * clickedmine;
+		static olc::Decal* fieldDecals[9], * digitDecals[11], * closedDecal, * flaggedDecal, * revealedmineDecal, * falsemineDecal, * clickedmineDecal;
+	private:
+		static olc::Sprite* fieldSprites[9], * digitSprites[11], * closedSprite, * flaggedSprite, * revealedmineSprite, * falsemineSprite, * clickedmineSprite;
 	};
-	olc::Sprite* Sprites::fieldSprites[9], * Sprites::digitSprites[11], * Sprites::closed, * Sprites::flagged, * Sprites::revealedmine, * Sprites::falsemine, * Sprites::clickedmine;
+	olc::Sprite* Graphics::fieldSprites[9], * Graphics::digitSprites[11], * Graphics::closedSprite, * Graphics::flaggedSprite, * Graphics::revealedmineSprite, * Graphics::falsemineSprite, * Graphics::clickedmineSprite;
+	olc::Decal* Graphics::fieldDecals[9], * Graphics::digitDecals[11], * Graphics::closedDecal, * Graphics::flaggedDecal, * Graphics::revealedmineDecal, * Graphics::falsemineDecal, * Graphics::clickedmineDecal;
 
 	struct Square {
 		enum class State {
@@ -134,18 +146,18 @@ namespace minesweeper {
 			}
 		}
 
-		olc::Sprite* getSprite(bool gameOver = false) {
+		olc::Decal* getDecal(bool gameOver = false) {
 			if (gameOver) {
 				if (this->isMine) {
 					switch (this->state) {
 					case(State::flagged):
-						return Sprites::flagged;
+						return Graphics::flaggedDecal;
 					case(State::closed):
-						return Sprites::revealedmine;
+						return Graphics::revealedmineDecal;
 					case(State::pressed):
 						std::cerr << "Pressed square after gameOver";
 					case(State::open):
-						return Sprites::clickedmine;
+						return Graphics::clickedmineDecal;
 					default:
 						throw std::exception("Invalid Square state");
 					}
@@ -153,12 +165,12 @@ namespace minesweeper {
 				else {
 					switch (this->state) {
 					case(State::flagged):
-						return Sprites::falsemine;
+						return Graphics::falsemineDecal;
 					case(State::pressed):
 						std::cerr << "Pressed square after gameOver";
 					case(State::open):
 					case(State::closed):
-						return Sprites::fieldSprites[this->value];
+						return Graphics::fieldDecals[this->value];
 					default:
 						throw std::exception("Invalid Square state");
 					}
@@ -167,13 +179,13 @@ namespace minesweeper {
 			else {
 				switch (state) {
 				case(State::closed):
-					return Sprites::closed;
+					return Graphics::closedDecal;
 				case(State::flagged):
-					return Sprites::flagged;
+					return Graphics::flaggedDecal;
 				case(State::open):
-					return Sprites::fieldSprites[value];
+					return Graphics::fieldDecals[value];
 				case(State::pressed):
-					return Sprites::fieldSprites[0];
+					return Graphics::fieldDecals[0];
 				default:
 					throw std::exception("Invalid Square state");
 				}
@@ -217,6 +229,7 @@ namespace minesweeper {
 			return 0;
 		}
 
+		// returns difference in unflagged Squares
 		int TryFlag() {
 			switch (this->state) {
 			case(State::closed):
@@ -277,7 +290,7 @@ namespace minesweeper {
 		{
 			olc::ctrls::Initialize(this);
 
-			Sprites::Sprites();
+			Graphics::Graphics();
 			std::uniform_real_distribution<> random(0, 1);
 			std::default_random_engine generator;
 
@@ -339,8 +352,6 @@ namespace minesweeper {
 					square->setNeighbors(&this->field);
 		}
 
-		// Called once per frame; fElapsedTime is dT in seconds
-		// Hacky: negative fElapsedTime forces redraw
 		bool OnUserUpdate(float fElapsedTime) override
 		{
 			if (fElapsedTime >= 0 && gameState == State::playing)
@@ -351,15 +362,12 @@ namespace minesweeper {
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
 
-			bool redrawField = fElapsedTime < 0;
-
 			if (GetKey(olc::Key::F5).bPressed && fElapsedTime >= 0) {
 				display = Display::game;
 				CreateField(this->minecount);
 				for (int y = 0; y < MS_TOPBAR_SIZE; y++)
 					for (int x = 0; x < ScreenWidth(); x++)
 						Draw(x, y, olc::DARK_GREY);
-				redrawField = true;
 			}
 
 			prevHoveredSquare = hoveredSquare;
@@ -385,14 +393,13 @@ namespace minesweeper {
 					for (int y = 0; y < MS_TOPBAR_SIZE; y++)
 						for (int x = 0; x < ScreenWidth(); x++)
 							Draw(x, y, olc::DARK_GREY);
-					redrawField = true;
 				}
 				else {
 					display = Display::config;
 
 					// Why doesn't this cause a memory leak?
 					amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::DARK_GREY, olc::GREY);
-					amountSlider->SetHeadOffset((float)(this->minecount - 1) / ((float)(getMaxMines()-2)) * amountSlider->GetWidth());
+					amountSlider->SetHeadOffset((float)(this->minecount - 1) / ((float)(getMaxMines() - 2)) * amountSlider->GetWidth());
 				}
 			}
 			if (GetKey(olc::Key::F1).bPressed) {
@@ -401,7 +408,7 @@ namespace minesweeper {
 			}
 			switch (this->display)
 			{
-			// HILFE
+				// HILFE
 			case(Display::help):
 			{
 				DrawStringDecal({ 8,8 }, "Keybinds\n------------------------------\nESC: Exit Game\nF1: Help\nF2: Settings\nF5: New Game\n\n\nControls\n------------------------------\nLMB: Reveal Square\nRMB: Flag Square\nMMB: Reveal adjacent Squares");
@@ -498,27 +505,20 @@ namespace minesweeper {
 						this->gameState = State::gameOver;
 				}
 
-				if (GetMouse(0).bPressed || GetMouse(0).bHeld || GetMouse(0).bReleased ||
-					GetMouse(1).bPressed || GetMouse(1).bHeld || GetMouse(1).bReleased ||
-					GetMouse(2).bPressed || GetMouse(2).bHeld || GetMouse(2).bReleased) {
-					redrawField = true;
-				}
+				// Playing field
+				for (auto row : this->field)
+					for (auto square : row)
+						DrawDecal({ (float)(square->position.x) * MS_FIELD_SIZE, (float)(square->position.y) * MS_FIELD_SIZE + MS_TOPBAR_SIZE }, square->getDecal(gameState == State::gameOver));
+				
+				// Mines counter
+				olc::Decal** mineCounterDecals = Graphics::IntToDecals(this->minecount - this->flaggedSquares);
+				for (int i = 0; i < 3; i++)
+					DrawDecal({ (float)(this->ScreenWidth() - 4 - mineCounterDecals[0]->sprite->width * (3 - i)), 4.0f }, mineCounterDecals[i]);
 
-				if (redrawField) {
-					for (auto row : this->field)
-						for (auto square : row)
-							DrawSprite(square->position.x * MS_FIELD_SIZE, square->position.y * MS_FIELD_SIZE + MS_TOPBAR_SIZE, square->getSprite(gameState == State::gameOver));
-					olc::Sprite** mineCounterSprites = Sprites::IntToSprites(this->minecount - this->flaggedSquares);
-					for (int i = 0; i < 3; i++)
-						DrawSprite(this->ScreenWidth() - 4 - mineCounterSprites[0]->width * (3 - i), 4, mineCounterSprites[i]);
-				}
-
-				// if             new second passed                          or       redraw is forced
-				if ((int)(passedSeconds - fElapsedTime) < (int)passedSeconds || fElapsedTime < 0 || redrawField) {
-					olc::Sprite** counterSprites = Sprites::IntToSprites((int)passedSeconds);
-					for (int i = 0; i < 3; i++)
-						DrawSprite(4 + counterSprites[0]->width * i, 4, counterSprites[i]);
-				}
+				// Seconds counter
+				olc::Decal** secondCounterDecals = Graphics::IntToDecals((int)passedSeconds);
+				for (int i = 0; i < 3; i++)
+					DrawDecal({ (float)(4.0f + secondCounterDecals[0]->sprite->width * i), 4.0f }, secondCounterDecals[i]);
 
 				return true;
 			}
