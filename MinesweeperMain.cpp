@@ -401,10 +401,15 @@ namespace minesweeper {
 			}
 			switch (this->display)
 			{
-				// HILFE
+			// HILFE
 			case(Display::help):
 			{
-				DrawStringDecal({ 8,8 }, "Keybinds\n------------------------------\nF1: Help\nF2: Settings\nF5: New Game\n\n\nControls\n------------------------------\nLMB: Reveal Square\nRMB: Flag Square\nMMB: Reveal adjacent Squares");
+				DrawStringDecal({ 8,8 }, "Keybinds\n------------------------------\nESC: Exit Game\nF1: Help\nF2: Settings\nF5: New Game\n\n\nControls\n------------------------------\nLMB: Reveal Square\nRMB: Flag Square\nMMB: Reveal adjacent Squares");
+
+#ifndef NDEBUG
+				DrawStringDecal({ 8, 8 * 16 }, "TODO?\n------------------------------\nSound\nAlternate graphics");
+#endif // !NDEBUG
+
 				DrawStringDecal({ 8, (float)ScreenHeight() - 8 * (3 + 1) }, "Created by Tobias Berger\nusing the\nOneLoneCoder PixelGameEngine");
 				return true;
 			}
@@ -412,7 +417,6 @@ namespace minesweeper {
 			case(Display::config):
 			{
 				Clear(olc::BLACK);
-				// DrawStringDecal({ 0,0 }, "Einstellungen");
 				DrawStringDecal({ 8,8 }, "Settings\n------------------------------\n\nMines:");
 				amountSlider->Update();
 				amountSlider->SetHeadOffset(std::clamp(amountSlider->GetHeadOffset(), 0.0f, amountSlider->GetWidth()));
