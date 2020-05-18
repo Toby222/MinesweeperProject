@@ -1,10 +1,12 @@
 #define OLC_PGE_APPLICATION
 #define OLC_PGEX_CONTROLS
+// #define OLC_GFX_OPENGL10
 
 #include "olcPixelGameEngine.h"
 #include "olcPGEX_Controls.h"
 #include <vector>
 #include <random>
+#include <algorithm>
 
 namespace minesweeper {
 	constexpr auto MS_FIELD_SIZE = 16;
@@ -266,6 +268,10 @@ namespace minesweeper {
 			sAppName = "Minesweeper";
 		}
 
+		int getMaxMines() {
+			return this->field.size() * this->field[0].size();
+		}
+
 		// Called once at the start, so create things here
 		bool OnUserCreate() override
 		{
@@ -276,7 +282,7 @@ namespace minesweeper {
 			std::default_random_engine generator;
 
 			if ((MS_FIELD_SIZE & MS_FIELD_SIZE >> 1) != 0)
-				throw std::exception("Invalid this->field size. Has to be power of 2.");
+				throw std::exception("Invalid field size. Has to be power of 2.");
 
 			if (ScreenWidth() % MS_FIELD_SIZE != 0)
 				throw std::exception("Invalid screen width.");
@@ -284,6 +290,7 @@ namespace minesweeper {
 				throw std::exception("Invalid screen height.");
 
 			CreateField(this->minecount);
+			OnUserUpdate(-1);
 
 			return true;
 		}
@@ -311,7 +318,7 @@ namespace minesweeper {
 
 			if (minecount == -1)
 				minecount = this->minecount;
-			if (minecount >= (this->field.size() * this->field[0].size()))
+			if (minecount >= (getMaxMines()))
 				throw std::exception("Invalid mine count for field size.");
 
 			std::uniform_int_distribution<> randomX(0, (int)this->field[0].size() - 1);
@@ -335,7 +342,6 @@ namespace minesweeper {
 			for (int y = 0; y < MS_TOPBAR_SIZE; y++)
 				for (int x = 0; x < ScreenWidth(); x++)
 					Draw(x, y, olc::DARK_GREY);
-			OnUserUpdate(-1);
 		}
 
 		// Called once per frame; fElapsedTime is dT in seconds
@@ -349,14 +355,17 @@ namespace minesweeper {
 				return true;
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
+
+			bool redrawField = fElapsedTime < 0;
+
 			if (GetKey(olc::Key::F5).bPressed && fElapsedTime >= 0) {
 				this->display = Display::game;
 				CreateField(this->minecount);
+				redrawField = true;
 			}
 
 			prevHoveredSquare = hoveredSquare;
 			hoveredSquare = nullptr;
-			bool redrawField = fElapsedTime < 0;
 
 			auto mousePos = olc::vi2d(GetMouseX(), GetMouseY() - MS_TOPBAR_SIZE) / MS_FIELD_SIZE;
 
@@ -367,26 +376,34 @@ namespace minesweeper {
 						this->flaggedSquares += square->TryFlag();
 						redrawField = true;
 					}
-#endif
+#endif // !NDEBUG
 
 			if (GetKey(olc::Key::F2).bPressed)
 			{
-				if (this->display == Display::config) {
+				if (display == Display::config) {
 					if (fElapsedTime >= 0)
 						this->CreateField();
-					this->display = Display::game;
+					display = Display::game;
 					redrawField = true;
 				}
 				else {
-					this->display = Display::config;
+					display = Display::config;
 
 					// Why doesn't this cause a memory leak?
-					this->amountSlider = new olc::ctrls::Slider({ 10, MS_TOPBAR_SIZE * 2 }, 200, olc::ctrls::Orientation::HORIZONTAL, olc::GREY, olc::GREEN);
+					amountSlider = new olc::ctrls::Slider({ 5, MS_TOPBAR_SIZE * 2 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::DARK_GREY, olc::GREY);
+
+					// Weirdness with CTRLS
+					amountSlider->SetHeadOffset((float)minecount / ((float)(getMaxMines() - 1)) * (amountSlider->GetWidth() - 1));
 				}
+			}
+			else if (GetKey(olc::Key::F1).bPressed) {
+				display = Display::help;
 			}
 			switch (this->display)
 			{
-			// EINSTELLUNGEN
+				// HILFE
+
+				// EINSTELLUNGEN
 			case(Display::config):
 			{
 				Clear(olc::BLACK);
@@ -394,12 +411,15 @@ namespace minesweeper {
 					for (int x = 0; x < ScreenWidth(); x++)
 						Draw(x, y, olc::DARK_GREY);
 
-				DrawStringDecal({ 0,0 }, "Einstellungen");
-				this->amountSlider->Update();
+				// DrawStringDecal({ 0,0 }, "Einstellungen");
+				DrawStringDecal({ 0,0 }, "Settings");
+				amountSlider->Update();
+				amountSlider->SetHeadOffset(std::clamp(amountSlider->GetHeadOffset(), 0.0f, amountSlider->GetWidth()));
+				printf_s("%f\n", amountSlider->GetPercent());
 
-				int maxMines = this->field.size() * this->field[0].size() - 4;
+				minecount = std::roundf(this->amountSlider->Value(getMaxMines() - 2) + 1);
 
-				DrawStringDecal({ 0,64 }, std::to_string((int)this->amountSlider->Value(maxMines) + 2));
+				DrawStringDecal({ 0,this->amountSlider->GetY() - 30 }, std::string("Mines: ") + std::to_string(minecount));
 
 				return true;
 			}
@@ -447,10 +467,16 @@ namespace minesweeper {
 					}
 
 					if ((GetMouse(0).bReleased) && !(gameState == State::gameOver)) {
-						while (gameState == State::newgame && hoveredSquare->isMine)
+						if (gameState == State::newgame)
 						{
-							CreateField(this->minecount);
-							hoveredSquare = this->field[mousePos.y][mousePos.x];
+							byte tries = 0;
+							while (hoveredSquare->isMine && (++tries) <= 255) {
+								CreateField(this->minecount);
+								hoveredSquare = this->field[mousePos.y][mousePos.x];
+							}
+#ifndef NDEBUG
+							printf_s("Generated field after %hhu tries\n", tries);
+#endif // !NDEBUG
 						}
 						gameState = State::playing;
 						int opened = hoveredSquare->TryOpen(this->field);
