@@ -404,6 +404,13 @@ namespace minesweeper {
 				// HILFE
 
 				// EINSTELLUNGEN
+			case(Display::help):
+			{
+				DrawStringDecal({ 8,8 }, "Keybinds\n------------------------------\nF1: Help\nF2: Settings\nF5: New Game\n\n\nControls\n------------------------------\nLMB: Reveal Square\nRMB: Flag Square\nMMB: Reveal adjacent Squares");
+				DrawStringDecal({ 8, (float)ScreenHeight() - 8 * (3 + 1) }, "Created by Tobias Berger\nusing the\nOneLoneCoder PixelGameEngine");
+				return true;
+			}
+			// EINSTELLUNGEN
 			case(Display::config):
 			{
 				Clear(olc::BLACK);
