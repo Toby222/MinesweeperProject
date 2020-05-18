@@ -257,7 +257,7 @@ namespace minesweeper {
 		Square* prevHoveredSquare;
 		float passedSeconds;
 
-		olc::ctrls::Slider* amountSlider;
+		olc::ctrls::Slider* amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::VERY_DARK_GREY, olc::GREY);
 
 		enum class State {
 			newgame,
@@ -388,8 +388,6 @@ namespace minesweeper {
 				else {
 					display = Display::config;
 
-					// Why doesn't this cause a memory leak?
-					amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::VERY_DARK_GREY, olc::GREY);
 					amountSlider->SetHeadOffset((float)(this->minecount - 1) / ((float)(getMaxMines() - 2)) * amountSlider->GetWidth());
 				}
 			}
