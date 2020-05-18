@@ -158,6 +158,9 @@
     <ClInclude Include="olcPGEX_Controls.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Minesweeper.rc" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
