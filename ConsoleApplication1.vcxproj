@@ -155,7 +155,6 @@
     <ClCompile Include="MinesweeperMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="olcPGEX_Controls.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
   </ItemGroup>
   <ItemGroup>

@@ -3,12 +3,96 @@
 // #define OLC_GFX_OPENGL10
 
 #include "olcPixelGameEngine.h"
-#include "olcPGEX_Controls.h"
 #include <vector>
 #include <random>
-#include <algorithm>
 
 namespace minesweeper {
+
+	// Taken and modified from "olcPGEX_Controls.h"
+	class Slider
+	{
+	public:
+		olc::PixelGameEngine* pge;
+
+		int x;
+		int y;
+
+		float width;
+		float height;
+		float headOffset;
+		olc::Pixel backgroundColor;
+		olc::Pixel foregroundColor;
+		bool IsSelected = false;
+		Slider(olc::PixelGameEngine* pixelGameEngine, olc::vf2d position = olc::vf2d(0.0f, 0.0f), float size = 0.0f, float height = 0.0f, olc::Pixel backgroundColor = olc::Pixel(88, 92, 92), olc::Pixel foregroundColor = olc::Pixel(67, 112, 181))
+		{
+			this->pge = pixelGameEngine;
+
+			this->x = position.x;
+			this->y = position.y;
+			this->width = size;
+			this->height = height;
+			this->headOffset = 0;
+			this->backgroundColor = backgroundColor;
+			this->foregroundColor = foregroundColor;
+		}
+		float GetWidth()
+		{
+			return width;
+		}
+		float GetHeight()
+		{
+			return height;
+		}
+		void SetHeadOffset(float hOffset)
+		{
+			headOffset = hOffset;
+		}
+		float GetHeadOffset()
+		{
+			return headOffset;
+		}
+		float GetPercent()
+		{
+			return headOffset / width * 100;
+		}
+		float Value(float maxv)
+		{
+			return maxv * GetPercent() / 100;
+		}
+		void Update()
+		{
+			bool inBounds = pge->GetMouseX() >= x && pge->GetMouseX() <= x + headOffset + 5 &&
+				pge->GetMouseY() >= y && pge->GetMouseY() <= y + height;
+
+			if (inBounds && (pge->GetMouse(0).bPressed || pge->GetMouse(1).bPressed || pge->GetMouse(2).bPressed))
+			{
+				IsSelected = true;
+			}
+			if (pge->GetMouse(0).bReleased || pge->GetMouse(1).bReleased || pge->GetMouse(2).bReleased)
+			{
+				IsSelected = false;
+			}
+
+			if (IsSelected)
+			{
+				int newOffset = pge->GetMouseX() - x;
+				if (newOffset >= 0 && newOffset <= (int)width)
+				{
+					headOffset = newOffset;
+				}
+			}
+
+			// Empty bar
+			pge->FillRect(x, y, width, 5, backgroundColor);
+
+			// Head
+			pge->FillRect(x + headOffset - 5, y - height / 2, 10, height, foregroundColor);
+
+			// Filled bar
+			pge->FillRect(x, y, headOffset, 5, foregroundColor);
+		}
+	};
+
 	constexpr auto MS_FIELD_SIZE = 16;
 	constexpr auto MS_TOPBAR_SIZE = 31;
 	constexpr auto MS_SCALE = 2;
@@ -257,7 +341,7 @@ namespace minesweeper {
 		Square* prevHoveredSquare;
 		float passedSeconds;
 
-		olc::ctrls::Slider* amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::VERY_DARK_GREY, olc::GREY);
+		Slider* amountSlider = new Slider(this, { 5, 32 + 15 + 8 }, ScreenWidth() - 10, 20, olc::VERY_DARK_GREY, olc::GREY);
 
 		enum class State {
 			newgame,
@@ -288,8 +372,6 @@ namespace minesweeper {
 		// Called once at the start, so create things here
 		bool OnUserCreate() override
 		{
-			olc::ctrls::Initialize(this);
-
 			Graphics::Graphics();
 			std::uniform_real_distribution<> random(0, 1);
 			std::default_random_engine generator;
@@ -303,6 +385,8 @@ namespace minesweeper {
 				throw std::exception("Invalid screen height.");
 
 			CreateField(0);
+
+			amountSlider->SetHeadOffset((float)(this->minecount - 1) / ((float)(getMaxMines() - 2)) * amountSlider->GetWidth());
 
 			return true;
 		}
@@ -360,7 +444,7 @@ namespace minesweeper {
 				return true;
 			}
 
-			if (fElapsedTime >= 0 && gameState == State::playing)
+			if (fElapsedTime > 0 && gameState == State::playing)
 				passedSeconds += fElapsedTime;
 
 			if (!Minesweeper::IsFocused() && !((int)(passedSeconds - fElapsedTime) < (int)passedSeconds || fElapsedTime < 0))
@@ -368,7 +452,7 @@ namespace minesweeper {
 			if (GetKey(olc::Key::ESCAPE).bPressed)
 				return false;
 
-			if (GetKey(olc::Key::F5).bPressed && fElapsedTime >= 0) {
+			if (GetKey(olc::Key::F5).bPressed && fElapsedTime > 0) {
 				display = Display::game;
 				CreateField(this->minecount);
 			}
@@ -381,14 +465,12 @@ namespace minesweeper {
 			if (GetKey(olc::Key::F2).bPressed)
 			{
 				if (display == Display::config) {
-					if (fElapsedTime >= 0)
+					if (fElapsedTime > 0)
 						this->CreateField();
 					display = Display::game;
 				}
 				else {
 					display = Display::config;
-
-					amountSlider->SetHeadOffset((float)(this->minecount - 1) / ((float)(getMaxMines() - 2)) * amountSlider->GetWidth());
 				}
 			}
 			if (GetKey(olc::Key::F1).bPressed) {
@@ -413,7 +495,6 @@ namespace minesweeper {
 			{
 				DrawStringDecal({ 8,8 }, "Settings\n------------------------------\n\nMines:");
 				amountSlider->Update();
-				amountSlider->SetHeadOffset(std::clamp(amountSlider->GetHeadOffset(), 0.0f, amountSlider->GetWidth()));
 
 				minecount = std::roundf(this->amountSlider->Value(getMaxMines() - 2) + 1);
 
