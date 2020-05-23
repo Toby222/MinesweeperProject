@@ -257,7 +257,7 @@ namespace minesweeper {
 		Square* prevHoveredSquare;
 		float passedSeconds;
 
-		olc::ctrls::Slider* amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::ctrls::Orientation::HORIZONTAL, olc::VERY_DARK_GREY, olc::GREY);
+		olc::ctrls::Slider* amountSlider = new olc::ctrls::Slider({ 5, 32 + 15 + 8 }, ScreenWidth() - 10, olc::VERY_DARK_GREY, olc::GREY);
 
 		enum class State {
 			newgame,
