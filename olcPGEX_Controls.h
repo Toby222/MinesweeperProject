@@ -215,45 +215,6 @@ namespace olc
 			}
 		};
 
-		class Box : public BaseComponent
-		{
-		public:
-			float width;
-			float height;
-			bool draw;
-			olc::Pixel backgroundColor;
-			Box(float x = 0.0f, float y = 0.0f, float width = 0.0f, float height = 0.0f, bool draw = false, olc::Pixel backgroundColor = olc::Pixel(225, 225, 225))
-			{
-				this->x = x;
-				this->y = y;
-				this->width = width;
-				this->height = height;
-				this->backgroundColor = backgroundColor;
-			}
-			float GetWidth() override { return width; }
-			float GetHeight() override { return height; }
-			bool Contains(float pointX, float pointY)
-			{
-				if ((int)pointX > (int)x && (int)pointX <= (int)x + (int)width && (int)pointY >= (int)y && (int)pointY <= (int)y + (int)height)
-				{
-					return true;
-				}
-				return false;
-			}
-			void UpdateSelf() override
-			{
-				pge->FillRect(x, y, width, height, backgroundColor);
-				if (Contains(pge->GetMouseX(), pge->GetMouseY()))
-				{
-					CallMouseHover(this);
-					if (pge->GetMouse(0).bPressed || pge->GetMouse(1).bPressed || pge->GetMouse(2).bPressed)
-						CallMouseClicked(this);
-					if (pge->GetMouse(0).bReleased || pge->GetMouse(1).bReleased || pge->GetMouse(2).bReleased)
-						CallMouseReleased(this);
-				}
-			}
-		};
-
 		class Slider : public BaseComponent
 		{
 		public:
@@ -297,8 +258,8 @@ namespace olc
 			}
 			void UpdateSelf() override
 			{
-				Box* boundingBox = new Box(x + headOffset - 5, y - 30 / 2, 10, 30);
-				if (boundingBox->Contains(pge->GetMouseX(), pge->GetMouseY()))
+				if ((int)pge->GetMouseX() >= (int)x && (int)pge->GetMouseX() <= (int)(x + headOffset - 5) + (int)10 &&
+					(int)pge->GetMouseY() >= (int)y && (int)pge->GetMouseY() <= (int)y + (int)30)
 				{
 					CallMouseHover(this);
 					if (pge->GetMouse(0).bPressed || pge->GetMouse(1).bPressed || pge->GetMouse(2).bPressed)
@@ -327,7 +288,6 @@ namespace olc
 				pge->FillRect(x, y, size, 5, backgroundColor);
 				pge->FillRect(x + headOffset - 5, y - 30 / 2, 10, 30, foregroundColor);
 				pge->FillRect(x, y, headOffset, 5, foregroundColor);
-				delete boundingBox;
 				return;
 			}
 		};
