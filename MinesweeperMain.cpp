@@ -573,7 +573,7 @@ namespace minesweeper {
 #ifndef NDEBUG
 					// In Debug-builds, render TODO list (incomplete, not updated)
 					//                       vv amount of newlines in previous string
-					DrawStringDecal({ 8, 8 * 22 }, "TODO?\n------------------------------\nSound\nAlternate graphics");
+					DrawStringDecal({ 8, 8 * 22 }, "TODO?\n------------------------------\nSound\nAlternate graphics\nSpritesheet");
 #endif // !NDEBUG
 
 					// Render attribution 4 lines from the bottom
