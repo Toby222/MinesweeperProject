@@ -1,5 +1,4 @@
 #define OLC_PGE_APPLICATION
-#define OLC_PGEX_CONTROLS
 // #define OLC_GFX_OPENGL10
 
 #include "olcPixelGameEngine.h"
@@ -95,9 +94,9 @@ namespace minesweeper {
 		}
 	};
 
-	constexpr auto MS_FIELD_SIZE = 16;
-	constexpr auto MS_TOPBAR_SIZE = 31;
-	constexpr auto MS_SCALE = 2;
+	constexpr short MS_FIELD_SIZE = 16;
+	constexpr short MS_TOPBAR_SIZE = 31;
+	constexpr short MS_SCALE = 2;
 
 	// For finding Square neighbors
 	const olc::vi2d offsets[8]{
