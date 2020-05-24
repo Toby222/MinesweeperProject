@@ -298,20 +298,19 @@ namespace minesweeper {
 					}
 				}
 			}
-			else {
-				switch (state) {
-					case(State::closed):
-						return Graphics::closedDecal;
-					case(State::flagged):
-						return Graphics::flaggedDecal;
-					case(State::open):
-						return Graphics::fieldDecals[value];
-					case(State::pressed):
-						return Graphics::fieldDecals[0];
-					default:
-						throw std::exception("Invalid Square state");
-				}
+			switch (state) {
+				case(State::closed):
+					return Graphics::closedDecal;
+				case(State::flagged):
+					return Graphics::flaggedDecal;
+				case(State::open):
+					return Graphics::fieldDecals[value];
+				case(State::pressed):
+					return Graphics::fieldDecals[0];
+				default:
+					throw std::exception("Invalid Square state");
 			}
+			throw std::exception("ERROR: GetDecal() -> This should never be reached");
 		};
 
 		// Set the state to pressed
@@ -568,12 +567,12 @@ namespace minesweeper {
 				// Help screen (F1)
 				case(Display::help):
 					// Render Help string
-					DrawStringDecal({ 8,8 }, "Keybinds\n------------------------------\nESC: Exit Game\nF1: Help\nF2: Settings\nF5: New Game\n\n\nControls\n------------------------------\nLMB: Reveal Square\nRMB: Flag Square\nMMB: Reveal adjacent Squares\n\n\nGoal\n------------------------------\nThe goal is to clear the entire\nfield leaving only mines.");
+					DrawStringDecal({ 8,8 }, "Keybinds\n------------------------------\nESC: Exit Game\nF1: Help\nF2: Settings\nF5: New Game\n\n\nControls\n------------------------------\nLMB: Reveal Square\nRMB: Flag Square\nMMB: Reveal adjacent Squares\n\n\nGoal\n------------------------------\nThe goal is to clear the\nentire field leaving only\nmines.");
 
 #ifndef NDEBUG
 					// In Debug-builds, render TODO list (incomplete, not updated)
 					//                       vv amount of newlines in previous string
-					DrawStringDecal({ 8, 8 * 22 }, "TODO?\n------------------------------\nSound\nAlternate graphics\nSpritesheet");
+					DrawStringDecal({ 8, 8 * 23 }, "TODO?\n------------------------------\nSound\nAlternate graphics\nSpritesheet");
 #endif // !NDEBUG
 
 					// Render attribution 4 lines from the bottom
@@ -675,16 +674,20 @@ namespace minesweeper {
 								int opened = hoveredSquare->TryOpen();
 								openedSquares += opened;
 								// If the field you opened was a mine, lose
-								if (opened == -1)
+								if (opened == -1) {
 									gameState = State::gameOver;
+									printf_s("You lost\n");
+								}
 							}
 							// If LMB (MB0) or MMB (MB2) are being held, press the hovered square
 							else if (GetMouse(0).bHeld || GetMouse(2).bHeld)
 								hoveredSquare->TryPress();
 						}
 						// If all remaining closed Squares are mines, win
-						if (getFieldArea() - this->openedSquares == this->minecount)
-							this->gameState = State::gameOver;
+						if (getFieldArea() - this->openedSquares == this->minecount) {
+							gameState = State::gameOver;
+							printf_s("You won!\n");
+						}
 					}
 					// Render:
 					// Playing field

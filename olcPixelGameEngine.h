@@ -65,7 +65,7 @@
 	GitHub:		https://www.github.com/onelonecoder
 	Homepage:	https://www.onelonecoder.com
 	Patreon:	https://www.patreon.com/javidx9
-	Community:  https://community.onelonecoder.com
+	Community:	https://community.onelonecoder.com
 
 	Compiling in Linux
 	~~~~~~~~~~~~~~~~~~
